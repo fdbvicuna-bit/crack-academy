@@ -7,59 +7,63 @@ const supabase = createClient(
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVtb3VocXR0dWZydWNoc2pzZm90Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwNDMyNTMsImV4cCI6MjA5MTYxOTI1M30.JdqrcWKZzsATUv7jfb7Q6m-HorZb5evMZGWGDICj9wo'
 )
 
-// ─── COLORS ───────────────────────────────────────────────────────────────────
 const C = {
   green: "#00C49A", blue: "#4D8EFF", orange: "#FF7043",
   yellow: "#FFB300", text: "#1C2340", sub: "#8892A4",
   bg: "#F2F5FA", card: "#FFFFFF",
 };
 
-// ─── HELPERS ──────────────────────────────────────────────────────────────────
 function formatPesos(n) { return `$${Number(n).toLocaleString("es-CL")}`; }
 const dias = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
 const MAMA_WHATSAPP = "56912345678";
 
-const CHALLENGES_EDAD = {
+// Día de hoy como string
+function getDiaHoy() {
+  const map = [6,0,1,2,3,4,5]; // domingo=0 en JS, nosotros queremos Domingo=6
+  return dias[map[new Date().getDay()]];
+}
+
+const CHALLENGES_DEFAULT = {
   pequeno: {
     label: "5-8 años",
-    Lunes:    [{ id:1,  emoji:"⚽", title:"Toque de balón",    desc:"50 toques sin que caiga",              puntos:300 },
-               { id:2,  emoji:"🏃", title:"Carrera con balón", desc:"Corre de un extremo al otro 3 veces",  puntos:250 }],
-    Martes:   [{ id:3,  emoji:"🎯", title:"Tiro al arco",      desc:"Mete 5 de 8 tiros al arco",            puntos:350 },
-               { id:4,  emoji:"🦵", title:"Pase con papá/mamá",desc:"Haz 20 pases seguidos sin perderla",   puntos:300 }],
-    Miércoles:[{ id:5,  emoji:"⚡", title:"Velocidad",          desc:"Sprint de 10m con balón x3",           puntos:300 },
-               { id:6,  emoji:"🌀", title:"Dribbling básico",   desc:"Driblea alrededor de 3 conos",         puntos:250 }],
-    Jueves:   [{ id:7,  emoji:"🎪", title:"Malabarismo",        desc:"Mantén el balón en el aire 10 seg",    puntos:400 },
-               { id:8,  emoji:"🤸", title:"Coordinación",       desc:"Salta la cuerda 20 veces seguidas",    puntos:250 }],
-    Viernes:  [{ id:9,  emoji:"🏆", title:"Mini circuito",      desc:"Toque + dribbling + disparo x3",       puntos:500 }],
-    Sábado:   [{ id:10, emoji:"⭐", title:"Juego libre",        desc:"Juega 30 min con balón y diviértete",  puntos:400 }],
-    Domingo:  [{ id:11, emoji:"😴", title:"Descanso activo",    desc:"Estira 10 min con ayuda de un adulto", puntos:150 }],
+    Lunes:    [{ id:1,  emoji:"⚽", title:"Toque de balón",     desc:"50 toques sin que caiga",             puntos:300 },
+               { id:2,  emoji:"🏃", title:"Carrera con balón",  desc:"Corre de un extremo al otro 3 veces", puntos:250 }],
+    Martes:   [{ id:3,  emoji:"🎯", title:"Tiro al arco",       desc:"Mete 5 de 8 tiros al arco",           puntos:350 },
+               { id:4,  emoji:"🦵", title:"Pase con papá/mamá", desc:"Haz 20 pases seguidos",               puntos:300 }],
+    Miércoles:[{ id:5,  emoji:"⚡", title:"Velocidad",           desc:"Sprint de 10m con balón x3",          puntos:300 },
+               { id:6,  emoji:"🌀", title:"Dribbling básico",    desc:"Driblea alrededor de 3 conos",        puntos:250 }],
+    Jueves:   [{ id:7,  emoji:"🎪", title:"Malabarismo",         desc:"Mantén el balón en el aire 10 seg",   puntos:400 },
+               { id:8,  emoji:"🤸", title:"Coordinación",        desc:"Salta la cuerda 20 veces seguidas",   puntos:250 }],
+    Viernes:  [{ id:9,  emoji:"🏆", title:"Mini circuito",       desc:"Toque + dribbling + disparo x3",      puntos:500 }],
+    Sábado:   [{ id:10, emoji:"⭐", title:"Juego libre",         desc:"Juega 30 min con balón",              puntos:400 }],
+    Domingo:  [{ id:11, emoji:"😴", title:"Descanso activo",     desc:"Estira 10 min con un adulto",         puntos:150 }],
   },
   mediano: {
     label: "9-11 años",
-    Lunes:    [{ id:1,  emoji:"⚽", title:"Toque de balón",     desc:"100 toques sin que caiga",              puntos:500 },
-               { id:2,  emoji:"🏃", title:"Carrera con balón",  desc:"Driblea de un extremo al otro 5 veces", puntos:400 }],
-    Martes:   [{ id:3,  emoji:"🎯", title:"Tiro al arco",       desc:"Mete 7 de 10 tiros al arco",            puntos:600 },
-               { id:4,  emoji:"🦵", title:"Control de pecho",   desc:"Recibe con el pecho 10 veces",          puntos:450 }],
-    Miércoles:[{ id:5,  emoji:"🎩", title:"Sombrero",            desc:"Haz el caño a un adulto 3 veces",       puntos:700 },
-               { id:6,  emoji:"⚡", title:"Velocidad",           desc:"Sprint 20m con balón en -5 seg",        puntos:600 }],
-    Jueves:   [{ id:7,  emoji:"🎪", title:"Malabarismo",         desc:"Mantén el balón en el aire 30 seg",     puntos:800 },
-               { id:8,  emoji:"🤸", title:"Agilidad",            desc:"Slalom entre 6 conos sin tirar ninguno",puntos:500 }],
-    Viernes:  [{ id:9,  emoji:"🏆", title:"El desafío del crack",desc:"Toque + dribbling + disparo x5",        puntos:900 },
-               { id:10, emoji:"🥅", title:"Penales",             desc:"Convierte 4 de 5 penales",              puntos:600 }],
-    Sábado:   [{ id:11, emoji:"⭐", title:"Día de partido",      desc:"Juega un partido con todo tu esfuerzo", puntos:1500}],
-    Domingo:  [{ id:12, emoji:"📺", title:"Estudio táctico",     desc:"Ve un partido y explica 2 jugadas",     puntos:300 }],
+    Lunes:    [{ id:1,  emoji:"⚽", title:"Toque de balón",      desc:"100 toques sin que caiga",             puntos:500 },
+               { id:2,  emoji:"🏃", title:"Carrera con balón",   desc:"Driblea de un extremo al otro 5 veces",puntos:400 }],
+    Martes:   [{ id:3,  emoji:"🎯", title:"Tiro al arco",        desc:"Mete 7 de 10 tiros al arco",           puntos:600 },
+               { id:4,  emoji:"🦵", title:"Control de pecho",    desc:"Recibe con el pecho 10 veces",         puntos:450 }],
+    Miércoles:[{ id:5,  emoji:"🎩", title:"Sombrero",             desc:"Haz el caño a un adulto 3 veces",      puntos:700 },
+               { id:6,  emoji:"⚡", title:"Velocidad",            desc:"Sprint 20m con balón en -5 seg",       puntos:600 }],
+    Jueves:   [{ id:7,  emoji:"🎪", title:"Malabarismo",          desc:"Mantén el balón en el aire 30 seg",    puntos:800 },
+               { id:8,  emoji:"🤸", title:"Agilidad",             desc:"Slalom entre 6 conos",                 puntos:500 }],
+    Viernes:  [{ id:9,  emoji:"🏆", title:"El desafío del crack", desc:"Toque + dribbling + disparo x5",       puntos:900 },
+               { id:10, emoji:"🥅", title:"Penales",              desc:"Convierte 4 de 5 penales",             puntos:600 }],
+    Sábado:   [{ id:11, emoji:"⭐", title:"Día de partido",       desc:"Juega un partido con todo tu esfuerzo",puntos:1500}],
+    Domingo:  [{ id:12, emoji:"📺", title:"Estudio táctico",      desc:"Ve un partido y explica 2 jugadas",    puntos:300 }],
   },
   grande: {
     label: "12+ años",
-    Lunes:    [{ id:1,  emoji:"⚽", title:"Toque de balón",     desc:"200 toques sin que caiga",               puntos:700 },
-               { id:2,  emoji:"🏃", title:"Circuito físico",    desc:"Dribbling + sprint + vuelta x5",         puntos:600 }],
+    Lunes:    [{ id:1,  emoji:"⚽", title:"Toque de balón",      desc:"200 toques sin que caiga",              puntos:700 },
+               { id:2,  emoji:"🏃", title:"Circuito físico",     desc:"Dribbling + sprint + vuelta x5",        puntos:600 }],
     Martes:   [{ id:3,  emoji:"🎯", title:"Tiro de larga dist.", desc:"5 goles desde 20 metros",               puntos:800 },
-               { id:4,  emoji:"🦵", title:"Control avanzado",   desc:"Control orientado: 15 balones seguidos", puntos:650 }],
-    Miércoles:[{ id:5,  emoji:"🧠", title:"Táctica",            desc:"Explica 3 sistemas de juego diferentes", puntos:500 },
-               { id:6,  emoji:"⚡", title:"Explosividad",        desc:"4x20m sprint con cambio de ritmo",       puntos:700 }],
-    Jueves:   [{ id:7,  emoji:"🎪", title:"Freestyle",          desc:"Encadena 5 trucos distintos",            puntos:1000}],
-    Viernes:  [{ id:8,  emoji:"🏆", title:"Partido 1v1",        desc:"Juega 1v1 contra un adulto 10 min",      puntos:1200}],
-    Sábado:   [{ id:9,  emoji:"⭐", title:"Partido oficial",    desc:"Partido completo de 90 min",             puntos:2000}],
+               { id:4,  emoji:"🦵", title:"Control avanzado",    desc:"15 balones controlados seguidos",       puntos:650 }],
+    Miércoles:[{ id:5,  emoji:"🧠", title:"Táctica",             desc:"Explica 3 sistemas de juego",           puntos:500 },
+               { id:6,  emoji:"⚡", title:"Explosividad",         desc:"4x20m sprint con cambio de ritmo",      puntos:700 }],
+    Jueves:   [{ id:7,  emoji:"🎪", title:"Freestyle",           desc:"Encadena 5 trucos distintos",           puntos:1000}],
+    Viernes:  [{ id:8,  emoji:"🏆", title:"Partido 1v1",         desc:"Juega 1v1 contra un adulto 10 min",     puntos:1200}],
+    Sábado:   [{ id:9,  emoji:"⭐", title:"Partido oficial",     desc:"Partido completo de 90 min",            puntos:2000}],
     Domingo:  [{ id:10, emoji:"💪", title:"Físico + estiramiento",desc:"30 min de rutina física completa",     puntos:500 }],
   },
 };
@@ -81,6 +85,17 @@ function getGrupoEdad(edad) {
   if (edad <= 8)  return "pequeno";
   if (edad <= 11) return "mediano";
   return "grande";
+}
+
+// Genera challenges iniciales para un niño según su edad
+function getChallengesIniciales(edad) {
+  const grupo = getGrupoEdad(edad);
+  const base = CHALLENGES_DEFAULT[grupo];
+  const resultado = {};
+  dias.forEach(dia => {
+    resultado[dia] = (base[dia] || []).map(c => ({ ...c, id: `${dia}-${c.id}` }));
+  });
+  return resultado;
 }
 
 // ─── UI ATOMS ─────────────────────────────────────────────────────────────────
@@ -146,17 +161,7 @@ function AvatarNino({ edad, size=48 }) {
   const colors = { pequeno:["#FFE0B2","#FF7043"], mediano:["#DBEAFE","#4D8EFF"], grande:["#D1FAE5","#00C49A"] };
   const [bg, fg] = colors[grupo];
   return (
-    <div style={{ width:size, height:size, borderRadius:size*0.28, background:bg, display:"flex", alignItems:"center", justifyContent:"center", fontSize:size*0.5, flexShrink:0, border:`2px solid ${fg}33` }}>
-      ⚽
-    </div>
-  );
-}
-
-function Spinner() {
-  return (
-    <div style={{ display:"flex", justifyContent:"center", alignItems:"center", padding:40 }}>
-      <div style={{ width:32, height:32, border:`3px solid ${C.bg}`, borderTop:`3px solid ${C.blue}`, borderRadius:"50%", animation:"spin 0.8s linear infinite" }}/>
-    </div>
+    <div style={{ width:size, height:size, borderRadius:size*0.28, background:bg, display:"flex", alignItems:"center", justifyContent:"center", fontSize:size*0.5, flexShrink:0, border:`2px solid ${fg}33` }}>⚽</div>
   );
 }
 
@@ -168,22 +173,17 @@ function Welcome({ onLogin, onRegister }) {
         <div style={{ display:"flex", justifyContent:"center", marginBottom:8 }}><Logo size={76}/></div>
         <p style={{ color:C.sub, fontSize:14, margin:"6px 0 10px" }}>La app de entrenamiento de tu hijo ⚽</p>
         <div style={{ margin:"24px 0 20px", display:"flex", justifyContent:"center" }}>
-          <svg width="110" height="100" viewBox="0 0 110 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="38" cy="28" r="18" fill="#DBEAFE"/>
-            <circle cx="38" cy="28" r="13" fill="#4D8EFF"/>
+          <svg width="110" height="100" viewBox="0 0 110 100" fill="none">
+            <circle cx="38" cy="28" r="18" fill="#DBEAFE"/><circle cx="38" cy="28" r="13" fill="#4D8EFF"/>
             <circle cx="38" cy="22" r="5" fill="#fff" opacity="0.9"/>
             <rect x="18" y="50" width="40" height="34" rx="14" fill="#4D8EFF"/>
             <rect x="22" y="50" width="32" height="20" rx="10" fill="#DBEAFE"/>
-            <circle cx="76" cy="36" r="13" fill="#FFE0B2"/>
-            <circle cx="76" cy="36" r="9" fill="#FF7043"/>
+            <circle cx="76" cy="36" r="13" fill="#FFE0B2"/><circle cx="76" cy="36" r="9" fill="#FF7043"/>
             <circle cx="76" cy="31" r="3.5" fill="#fff" opacity="0.9"/>
             <rect x="60" y="56" width="30" height="26" rx="12" fill="#FF7043"/>
             <rect x="63" y="56" width="24" height="16" rx="8" fill="#FFE0B2"/>
             <circle cx="55" cy="72" r="8" fill="#FFB300" opacity="0.25"/>
             <circle cx="55" cy="72" r="5" fill="#FFB300" opacity="0.5"/>
-            <circle cx="90" cy="30" r="4" fill="#FFD700" opacity="0.7"/>
-            <circle cx="18" cy="45" r="3" fill="#4D8EFF" opacity="0.4"/>
-            <circle cx="95" cy="55" r="2.5" fill="#FF7043" opacity="0.4"/>
           </svg>
         </div>
         <p style={{ color:C.sub, fontSize:14, margin:"0 0 32px", lineHeight:1.5 }}>Mamá crea los perfiles y gestiona los desafíos. Los niños entrenan y ganan premios.</p>
@@ -208,24 +208,17 @@ function Register({ onBack, onSuccess }) {
     if (clave.length < 4) { setError("La clave debe tener al menos 4 caracteres"); return; }
     setLoading(true); setError("");
     try {
-      // Check if usuario exists
-      const { data: existing } = await supabase.from('cuentas').select('id').eq('usuario', usuario.trim().toLowerCase()).single();
+      const { data: existing } = await supabase.from('cuentas').select('id').eq('usuario', usuario.trim().toLowerCase()).maybeSingle();
       if (existing) { setError("Ese usuario ya existe"); setLoading(false); return; }
-
       const { data, error: err } = await supabase.from('cuentas')
         .insert([{ nombre: nombre.trim(), usuario: usuario.trim().toLowerCase(), clave }])
         .select().single();
       if (err) throw err;
-
-      // Insert default premios
       const premiosConCuenta = PREMIOS_DEFAULT.map(p => ({ ...p, cuenta_id: data.id }));
       await supabase.from('premios').insert(premiosConCuenta);
-
-      const premios = PREMIOS_DEFAULT.map((p,i) => ({ ...p, id: i+1 }));
-      onSuccess({ ...data, ninos: [], premios });
-    } catch(e) {
-      setError("Error al crear cuenta. Intenta de nuevo.");
-    }
+      const { data: premios } = await supabase.from('premios').select('*').eq('cuenta_id', data.id);
+      onSuccess({ ...data, ninos: [], premios: premios || [] });
+    } catch(e) { setError("Error al crear cuenta. Intenta de nuevo."); }
     setLoading(false);
   };
 
@@ -236,8 +229,7 @@ function Register({ onBack, onSuccess }) {
         <h2 style={{ margin:0, fontSize:18, fontWeight:900 }}>Crear cuenta</h2>
       </div>
       <div style={{ padding:"32px 20px", maxWidth:430, margin:"0 auto" }}>
-        <div style={{ textAlign:"center", marginBottom:28 }}>
-          <div style={{ fontSize:52, marginBottom:8 }}>👩</div>
+        <div style={{ textAlign:"center", marginBottom:28 }}><div style={{ fontSize:52, marginBottom:8 }}>👩</div>
           <p style={{ color:C.sub, fontSize:14, margin:0 }}>Crea tu cuenta para gestionar los perfiles de tus hijos</p>
         </div>
         <Field label="TU NOMBRE" value={nombre} onChange={setNombre} placeholder="ej: María" icon="👩"/>
@@ -263,14 +255,10 @@ function Login({ onBack, onSuccess }) {
       const { data: cuenta, error: err } = await supabase.from('cuentas')
         .select('*').eq('usuario', usuario.trim().toLowerCase()).eq('clave', clave).single();
       if (err || !cuenta) { setError("Usuario o contraseña incorrectos"); setLoading(false); return; }
-
-      // Load ninos and premios
       const { data: ninos } = await supabase.from('ninos').select('*').eq('cuenta_id', cuenta.id);
       const { data: premios } = await supabase.from('premios').select('*').eq('cuenta_id', cuenta.id);
       onSuccess({ ...cuenta, ninos: ninos || [], premios: premios || [] });
-    } catch(e) {
-      setError("Error al ingresar. Intenta de nuevo.");
-    }
+    } catch(e) { setError("Error al ingresar. Intenta de nuevo."); }
     setLoading(false);
   };
 
@@ -295,6 +283,7 @@ function Login({ onBack, onSuccess }) {
   );
 }
 
+// ─── PANEL MAMÁ ───────────────────────────────────────────────────────────────
 function PanelMama({ cuenta, onLogout, onSelectNino, onUpdateCuenta }) {
   const [vistaAgregar, setVistaAgregar] = useState(false);
   const [nombre, setNombre] = useState("");
@@ -313,12 +302,12 @@ function PanelMama({ cuenta, onLogout, onSelectNino, onUpdateCuenta }) {
     if (e < 4 || e > 18) { setError("Edad entre 4 y 18 años"); return; }
     setLoading(true);
     try {
+      const challengesIniciales = getChallengesIniciales(e);
       const { data, error: err } = await supabase.from('ninos')
-        .insert([{ cuenta_id: cuenta.id, nombre: nombre.trim(), edad: e, puntos: 0, completados: {}, historial: [] }])
+        .insert([{ cuenta_id: cuenta.id, nombre: nombre.trim(), edad: e, puntos: 0, completados: {}, historial: [], challenges: challengesIniciales }])
         .select().single();
       if (err) throw err;
-      const updated = { ...cuenta, ninos: [...cuenta.ninos, data] };
-      onUpdateCuenta(updated);
+      onUpdateCuenta({ ...cuenta, ninos: [...cuenta.ninos, data] });
       setNombre(""); setEdad(""); setError(""); setVistaAgregar(false);
     } catch(e) { setError("Error al agregar. Intenta de nuevo."); }
     setLoading(false);
@@ -372,21 +361,21 @@ function PanelMama({ cuenta, onLogout, onSelectNino, onUpdateCuenta }) {
             </div>
 
             {vistaAgregar && (
-              <div style={{ background:C.card, border:`1.5px solid ${C.blue}33`, borderRadius:20, padding:"20px 16px", marginBottom:18, boxShadow:`0 4px 16px ${C.blue}15` }}>
+              <div style={{ background:C.card, border:`1.5px solid ${C.blue}33`, borderRadius:20, padding:"20px 16px", marginBottom:18 }}>
                 <p style={{ margin:"0 0 14px", fontWeight:800, fontSize:15 }}>Nuevo perfil</p>
-                <Field label="NOMBRE DEL NIÑO" value={nombre} onChange={setNombre} placeholder="ej: Matías" icon="👦"/>
+                <Field label="NOMBRE" value={nombre} onChange={setNombre} placeholder="ej: Matías" icon="👦"/>
                 <Field label="EDAD" type="number" value={edad} onChange={setEdad} placeholder="ej: 9" icon="🎂"/>
                 {edad && parseInt(edad) >= 4 && (
                   <div style={{ background:C.bg, borderRadius:12, padding:"10px 14px", marginBottom:12 }}>
                     <p style={{ margin:0, fontSize:12, color:C.sub, fontWeight:700 }}>
-                      📋 Recibirá desafíos para <strong style={{ color:C.blue }}>{CHALLENGES_EDAD[getGrupoEdad(parseInt(edad))]?.label}</strong>
+                      📋 Desafíos para <strong style={{ color:C.blue }}>{CHALLENGES_DEFAULT[getGrupoEdad(parseInt(edad))]?.label}</strong>
                     </p>
                   </div>
                 )}
                 {error && <p style={{ color:"#D32F2F", fontSize:13, margin:"0 0 10px", fontWeight:700 }}>⚠️ {error}</p>}
                 <div style={{ display:"flex", gap:10 }}>
                   <Pill onClick={() => { setVistaAgregar(false); setError(""); }} color={C.sub} outline small>Cancelar</Pill>
-                  <Pill onClick={agregarNino} color={C.blue} small disabled={loading}>{loading ? "..." : "Crear perfil ✓"}</Pill>
+                  <Pill onClick={agregarNino} color={C.blue} small disabled={loading}>{loading ? "..." : "Crear ✓"}</Pill>
                 </div>
               </div>
             )}
@@ -402,7 +391,7 @@ function PanelMama({ cuenta, onLogout, onSelectNino, onUpdateCuenta }) {
               const colores = { pequeno: C.orange, mediano: C.blue, grande: C.green };
               const color = colores[grupo];
               return (
-                <div key={n.id} style={{ background:C.card, border:"1.5px solid #E8EDF5", borderRadius:20, padding:"16px 16px", marginBottom:12, boxShadow:"0 2px 10px rgba(0,0,0,0.05)" }}>
+                <div key={n.id} style={{ background:C.card, border:"1.5px solid #E8EDF5", borderRadius:20, padding:"16px", marginBottom:12, boxShadow:"0 2px 10px rgba(0,0,0,0.05)" }}>
                   <div style={{ display:"flex", alignItems:"center", gap:14 }}>
                     <AvatarNino edad={n.edad} size={52}/>
                     <div style={{ flex:1 }}>
@@ -410,7 +399,7 @@ function PanelMama({ cuenta, onLogout, onSelectNino, onUpdateCuenta }) {
                         <p style={{ margin:0, fontWeight:900, fontSize:17 }}>{n.nombre}</p>
                         <span style={{ background:`${color}20`, color, borderRadius:100, padding:"2px 10px", fontSize:11, fontWeight:800 }}>{n.edad} años</span>
                       </div>
-                      <p style={{ margin:"0 0 4px", color:C.sub, fontSize:12 }}>{CHALLENGES_EDAD[grupo]?.label}</p>
+                      <p style={{ margin:"0 0 4px", color:C.sub, fontSize:12 }}>{CHALLENGES_DEFAULT[grupo]?.label}</p>
                       <div style={{ display:"flex", alignItems:"center", gap:6 }}>
                         <span style={{ fontSize:13 }}>💰</span>
                         <span style={{ fontWeight:800, fontSize:14, color:C.yellow }}>{formatPesos(n.puntos)}</span>
@@ -459,8 +448,8 @@ function PanelMama({ cuenta, onLogout, onSelectNino, onUpdateCuenta }) {
 
       <div style={{ position:"fixed", bottom:0, left:0, right:0, zIndex:50, background:"rgba(255,255,255,0.92)", backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", borderTop:"1px solid #E8EDF5", display:"flex" }}>
         {[
-          { id:"hijos",  label:"Mis hijos", svgA:<svg viewBox="0 0 24 24" fill={C.orange} width="22" height="22"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zm14 10v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>, svgI:<svg viewBox="0 0 24 24" fill="none" stroke="#B0BAC9" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="22" height="22"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zm14 10v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg> },
-          { id:"premios",label:"Premios",   svgA:<svg viewBox="0 0 24 24" fill={C.orange} width="22" height="22"><path d="M20 12v10H4V12M22 7H2v5h20V7zM12 22V7M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7zm0 0h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/></svg>, svgI:<svg viewBox="0 0 24 24" fill="none" stroke="#B0BAC9" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="22" height="22"><path d="M20 12v10H4V12M22 7H2v5h20V7zM12 22V7M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7zm0 0h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/></svg> },
+          { id:"hijos", label:"Mis hijos", svgA:<svg viewBox="0 0 24 24" fill={C.orange} width="22" height="22"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zm14 10v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>, svgI:<svg viewBox="0 0 24 24" fill="none" stroke="#B0BAC9" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="22" height="22"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zm14 10v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg> },
+          { id:"premios", label:"Premios", svgA:<svg viewBox="0 0 24 24" fill={C.orange} width="22" height="22"><path d="M20 12v10H4V12M22 7H2v5h20V7zM12 22V7M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7zm0 0h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/></svg>, svgI:<svg viewBox="0 0 24 24" fill="none" stroke="#B0BAC9" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="22" height="22"><path d="M20 12v10H4V12M22 7H2v5h20V7zM12 22V7M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7zm0 0h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/></svg> },
         ].map(tab => {
           const active = vistaTab === tab.id;
           return (
@@ -475,27 +464,31 @@ function PanelMama({ cuenta, onLogout, onSelectNino, onUpdateCuenta }) {
   );
 }
 
-function VistaNino({ nino: ninoInicial, cuenta, onBack, onUpdateNino }) {
+// ─── VISTA NIÑO ───────────────────────────────────────────────────────────────
+function VistaNino({ nino: ninoInicial, cuenta, onBack, onUpdateNino, esMama }) {
   const [nino, setNino] = useState(ninoInicial);
   const [vista, setVista] = useState("inicio");
-  const [diaActual, setDiaActual] = useState("Lunes");
+  const diaHoy = getDiaHoy();
+  const [diaSeleccionado, setDiaSeleccionado] = useState(diaHoy);
   const [confirmar, setConfirmar] = useState(null);
   const [premioCanjear, setPremioCanjear] = useState(null);
   const [celebrar, setCelebrar] = useState(false);
   const [canjeExitoso, setCanjeExitoso] = useState(null);
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    const map = [6,0,1,2,3,4,5];
-    setDiaActual(dias[map[new Date().getDay()]]);
-  }, []);
+  // Estado para editar desafíos (solo mamá)
+  const [editandoDia, setEditandoDia] = useState(null);
+  const [nuevoDesafio, setNuevoDesafio] = useState({ emoji:"⚽", title:"", desc:"", puntos:"" });
+  const [editDesafio, setEditDesafio] = useState(null);
 
   const grupo = getGrupoEdad(nino.edad);
-  const challenges = CHALLENGES_EDAD[grupo] || {};
-  const challengesHoy = challenges[diaActual] || [];
-  const completadosHoy = challengesHoy.filter(c => nino.completados[`${diaActual}-${c.id}`]).length;
-  const progreso = challengesHoy.length ? Math.round((completadosHoy / challengesHoy.length) * 100) : 0;
   const grupoColor = { pequeno: C.orange, mediano: C.blue, grande: C.green }[grupo];
+
+  // Usa challenges personalizados del niño, o genera los default si no tiene
+  const challenges = nino.challenges || getChallengesIniciales(nino.edad);
+  const challengesHoy = challenges[diaHoy] || [];
+  const completadosHoy = challengesHoy.filter(c => nino.completados[`${diaHoy}-${c.id}`]).length;
+  const progreso = challengesHoy.length ? Math.round((completadosHoy / challengesHoy.length) * 100) : 0;
 
   const saveNino = async (updated) => {
     setSaving(true);
@@ -503,6 +496,7 @@ function VistaNino({ nino: ninoInicial, cuenta, onBack, onUpdateNino }) {
       puntos: updated.puntos,
       completados: updated.completados,
       historial: updated.historial,
+      challenges: updated.challenges,
     }).eq('id', updated.id);
     setNino(updated);
     onUpdateNino(updated);
@@ -510,7 +504,7 @@ function VistaNino({ nino: ninoInicial, cuenta, onBack, onUpdateNino }) {
   };
 
   const aprobarDesafio = async (d) => {
-    const key = `${diaActual}-${d.id}`;
+    const key = `${diaHoy}-${d.id}`;
     if (nino.completados[key]) return;
     const updated = {
       ...nino,
@@ -535,6 +529,34 @@ function VistaNino({ nino: ninoInicial, cuenta, onBack, onUpdateNino }) {
     setCanjeExitoso(p);
     setPremioCanjear(null);
     setTimeout(() => window.open(`https://wa.me/${MAMA_WHATSAPP}?text=${msg}`, "_blank"), 800);
+  };
+
+  // ── Gestión de desafíos (mamá) ──
+  const agregarDesafio = async (dia) => {
+    if (!nuevoDesafio.title.trim() || !nuevoDesafio.puntos) return;
+    const newId = `custom-${Date.now()}`;
+    const desafio = { id: newId, emoji: nuevoDesafio.emoji, title: nuevoDesafio.title.trim(), desc: nuevoDesafio.desc.trim(), puntos: parseInt(nuevoDesafio.puntos) };
+    const updated = { ...nino, challenges: { ...challenges, [dia]: [...(challenges[dia] || []), desafio] } };
+    await saveNino(updated);
+    setNuevoDesafio({ emoji:"⚽", title:"", desc:"", puntos:"" });
+  };
+
+  const eliminarDesafio = async (dia, id) => {
+    const updated = { ...nino, challenges: { ...challenges, [dia]: challenges[dia].filter(c => c.id !== id) } };
+    await saveNino(updated);
+  };
+
+  const guardarEdicion = async (dia) => {
+    if (!editDesafio) return;
+    const updated = {
+      ...nino,
+      challenges: {
+        ...challenges,
+        [dia]: challenges[dia].map(c => c.id === editDesafio.id ? editDesafio : c)
+      }
+    };
+    await saveNino(updated);
+    setEditDesafio(null);
   };
 
   return (
@@ -584,6 +606,7 @@ function VistaNino({ nino: ninoInicial, cuenta, onBack, onUpdateNino }) {
       )}
 
       <div style={{ maxWidth:430, margin:"0 auto", paddingBottom:88 }}>
+        {/* Header */}
         <div style={{ background:C.card, padding:"18px 18px 14px", boxShadow:"0 1px 10px rgba(0,0,0,0.07)" }}>
           <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
             <div style={{ display:"flex", alignItems:"center", gap:10 }}>
@@ -601,10 +624,12 @@ function VistaNino({ nino: ninoInicial, cuenta, onBack, onUpdateNino }) {
           </div>
         </div>
 
+        {/* INICIO */}
         {vista === "inicio" && (
           <div style={{ padding:"18px 16px" }}>
+            {/* Banner progreso */}
             <div style={{ background:`linear-gradient(135deg, ${grupoColor}, ${C.blue})`, borderRadius:22, padding:"22px 22px 20px", marginBottom:20, boxShadow:`0 8px 28px ${grupoColor}50`, color:"#fff" }}>
-              <p style={{ margin:"0 0 2px", fontSize:11, fontWeight:800, opacity:0.8, letterSpacing:0.8 }}>PROGRESO DE HOY · {diaActual.toUpperCase()}</p>
+              <p style={{ margin:"0 0 2px", fontSize:11, fontWeight:800, opacity:0.8, letterSpacing:0.8 }}>HOY · {diaHoy.toUpperCase()}</p>
               <h2 style={{ margin:"0 0 16px", fontSize:22, fontWeight:900 }}>
                 {completadosHoy === challengesHoy.length && challengesHoy.length > 0 ? "¡Crack del día! 🏆" : `¡Vamos ${nino.nombre}! 🔥`}
               </h2>
@@ -614,19 +639,14 @@ function VistaNino({ nino: ninoInicial, cuenta, onBack, onUpdateNino }) {
               <p style={{ margin:0, fontSize:13, opacity:0.9 }}>{completadosHoy} de {challengesHoy.length} completados</p>
             </div>
 
-            <div style={{ display:"flex", gap:6, marginBottom:14, flexWrap:"wrap" }}>
-              {dias.map(d => (
-                <button key={d} onClick={() => setDiaActual(d)} style={{
-                  background: diaActual===d ? grupoColor : C.bg, color: diaActual===d ? "#fff" : C.sub,
-                  border:"none", borderRadius:100, padding:"6px 13px", fontSize:12, fontWeight:800,
-                  cursor:"pointer", fontFamily:"inherit", boxShadow: diaActual===d ? `0 3px 10px ${grupoColor}44` : "none",
-                }}>{d.slice(0,3)}</button>
-              ))}
-            </div>
-
-            <p style={{ margin:"0 0 12px 2px", fontSize:11, fontWeight:800, color:C.sub, letterSpacing:0.8 }}>DESAFÍOS — {diaActual.toUpperCase()}</p>
-            {(challenges[diaActual] || []).map(c => {
-              const done = nino.completados[`${diaActual}-${c.id}`];
+            <p style={{ margin:"0 0 12px 2px", fontSize:11, fontWeight:800, color:C.sub, letterSpacing:0.8 }}>DESAFÍOS DE HOY</p>
+            {challengesHoy.length === 0 && (
+              <div style={{ textAlign:"center", padding:"30px 20px", color:C.sub }}>
+                <p>No hay desafíos para hoy</p>
+              </div>
+            )}
+            {challengesHoy.map(c => {
+              const done = nino.completados[`${diaHoy}-${c.id}`];
               return (
                 <div key={c.id} onClick={() => !done && setConfirmar(c)} style={{
                   background: done ? "#F0FDF9" : C.card, border:`1.5px solid ${done ? "#99F6D0" : "#E8EDF5"}`,
@@ -650,6 +670,145 @@ function VistaNino({ nino: ninoInicial, cuenta, onBack, onUpdateNino }) {
           </div>
         )}
 
+        {/* SEMANA — con días bloqueados */}
+        {vista === "semana" && (
+          <div style={{ padding:"18px 16px" }}>
+            <h2 style={{ margin:"0 0 2px", fontSize:20 }}>Semana completa</h2>
+            <p style={{ color:C.sub, margin:"0 0 16px", fontSize:13 }}>Solo puedes completar los desafíos de hoy</p>
+
+            {/* Selector de días */}
+            <div style={{ display:"flex", gap:6, marginBottom:20, flexWrap:"wrap" }}>
+              {dias.map(d => {
+                const esHoy = d === diaHoy;
+                const esPasado = dias.indexOf(d) < dias.indexOf(diaHoy);
+                return (
+                  <button key={d} onClick={() => setDiaSeleccionado(d)} style={{
+                    background: diaSeleccionado===d ? (esHoy ? grupoColor : esPasado ? "#94A3B8" : "#CBD5E1") : C.bg,
+                    color: diaSeleccionado===d ? "#fff" : esHoy ? grupoColor : C.sub,
+                    border: esHoy && diaSeleccionado!==d ? `1.5px solid ${grupoColor}` : "1.5px solid transparent",
+                    borderRadius:100, padding:"7px 14px", fontSize:12, fontWeight:800,
+                    cursor:"pointer", fontFamily:"inherit",
+                    boxShadow: diaSeleccionado===d ? `0 3px 10px rgba(0,0,0,0.15)` : "none",
+                  }}>
+                    {d.slice(0,3)}{esHoy ? " 🟢" : ""}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Desafíos del día seleccionado */}
+            {(() => {
+              const esHoy = diaSeleccionado === diaHoy;
+              const esFuturo = dias.indexOf(diaSeleccionado) > dias.indexOf(diaHoy);
+              const challengesDia = challenges[diaSeleccionado] || [];
+              return (
+                <>
+                  {/* Banner bloqueado */}
+                  {!esHoy && (
+                    <div style={{ background: esFuturo ? "#EFF6FF" : "#F8FAFC", border:`1.5px solid ${esFuturo ? "#BFDBFE" : "#E2E8F0"}`, borderRadius:14, padding:"12px 16px", marginBottom:16, display:"flex", alignItems:"center", gap:10 }}>
+                      <span style={{ fontSize:20 }}>{esFuturo ? "🔒" : "✅"}</span>
+                      <p style={{ margin:0, fontSize:13, color:C.sub, fontWeight:700 }}>
+                        {esFuturo ? "Este día aún no ha llegado" : "Día pasado — solo lectura"}
+                      </p>
+                    </div>
+                  )}
+
+                  {challengesDia.length === 0 ? (
+                    <p style={{ color:C.sub, textAlign:"center", padding:"20px 0" }}>No hay desafíos para este día</p>
+                  ) : challengesDia.map(c => {
+                    const done = nino.completados[`${diaHoy}-${c.id}`];
+                    const bloqueado = !esHoy;
+                    return (
+                      <div key={c.id} onClick={() => esHoy && !done && setConfirmar(c)} style={{
+                        background: done && esHoy ? "#F0FDF9" : C.card,
+                        border:`1.5px solid ${done && esHoy ? "#99F6D0" : "#E8EDF5"}`,
+                        borderRadius:16, padding:"13px 15px", display:"flex", alignItems:"center", gap:12,
+                        marginBottom:8, cursor: esHoy && !done ? "pointer" : "default",
+                        opacity: bloqueado ? 0.5 : 1,
+                      }}>
+                        <span style={{ fontSize:22 }}>{done && esHoy ? "✅" : bloqueado ? "🔒" : c.emoji}</span>
+                        <div style={{ flex:1 }}>
+                          <p style={{ margin:0, fontWeight:700, fontSize:14, color: done && esHoy ? C.green : C.text }}>{c.title}</p>
+                          <p style={{ margin:"1px 0 0", color:C.sub, fontSize:11 }}>{c.desc}</p>
+                        </div>
+                        <span style={{ fontWeight:900, fontSize:13, color: done && esHoy ? C.green : C.yellow, whiteSpace:"nowrap" }}>{formatPesos(c.puntos)}</span>
+                      </div>
+                    );
+                  })}
+                </>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* DESAFÍOS — solo mamá puede editar */}
+        {vista === "editar" && esMama && (
+          <div style={{ padding:"18px 16px" }}>
+            <h2 style={{ margin:"0 0 2px", fontSize:20 }}>✏️ Editar desafíos</h2>
+            <p style={{ color:C.sub, fontSize:13, margin:"0 0 16px" }}>Personaliza los desafíos de {nino.nombre}</p>
+
+            {dias.map(dia => (
+              <div key={dia} style={{ marginBottom:20 }}>
+                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
+                  <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                    <div style={{ width:7, height:7, borderRadius:"50%", background: dia===diaHoy ? grupoColor : "#CBD5E1" }}/>
+                    <span style={{ fontSize:12, fontWeight:800, color: dia===diaHoy ? grupoColor : C.sub, letterSpacing:0.6 }}>{dia.toUpperCase()}</span>
+                    {dia===diaHoy && <span style={{ fontSize:11, background:`${grupoColor}20`, color:grupoColor, borderRadius:100, padding:"2px 10px", fontWeight:800 }}>HOY</span>}
+                  </div>
+                  <button onClick={() => setEditandoDia(editandoDia===dia ? null : dia)} style={{ background:`${C.blue}15`, color:C.blue, border:"none", borderRadius:100, padding:"5px 12px", fontSize:12, fontWeight:800, cursor:"pointer", fontFamily:"inherit" }}>
+                    {editandoDia===dia ? "Cerrar" : "+ Agregar"}
+                  </button>
+                </div>
+
+                {/* Form agregar */}
+                {editandoDia===dia && (
+                  <div style={{ background:`${C.blue}08`, border:`1.5px solid ${C.blue}30`, borderRadius:16, padding:"14px 14px", marginBottom:10 }}>
+                    <div style={{ display:"flex", gap:8, marginBottom:8 }}>
+                      <input value={nuevoDesafio.emoji} onChange={e=>setNuevoDesafio({...nuevoDesafio, emoji:e.target.value})} style={{ width:46, border:"1.5px solid #E8EDF5", borderRadius:10, padding:"8px 4px", fontSize:18, textAlign:"center", fontFamily:"inherit", outline:"none" }}/>
+                      <input value={nuevoDesafio.title} onChange={e=>setNuevoDesafio({...nuevoDesafio, title:e.target.value})} placeholder="Nombre del desafío" style={{ flex:1, border:"1.5px solid #E8EDF5", borderRadius:10, padding:"8px 12px", fontSize:13, fontFamily:"inherit", outline:"none", color:C.text }}/>
+                    </div>
+                    <input value={nuevoDesafio.desc} onChange={e=>setNuevoDesafio({...nuevoDesafio, desc:e.target.value})} placeholder="Descripción (qué debe hacer)" style={{ width:"100%", border:"1.5px solid #E8EDF5", borderRadius:10, padding:"8px 12px", fontSize:13, fontFamily:"inherit", outline:"none", color:C.text, boxSizing:"border-box", marginBottom:8 }}/>
+                    <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+                      <input value={nuevoDesafio.puntos} onChange={e=>setNuevoDesafio({...nuevoDesafio, puntos:e.target.value})} placeholder="Puntos $" type="number" style={{ flex:1, border:"1.5px solid #E8EDF5", borderRadius:10, padding:"8px 12px", fontSize:13, fontFamily:"inherit", outline:"none", color:C.text }}/>
+                      <Pill onClick={() => agregarDesafio(dia)} color={C.blue} small disabled={saving}>Agregar</Pill>
+                    </div>
+                  </div>
+                )}
+
+                {(challenges[dia] || []).map(c => (
+                  <div key={c.id}>
+                    {editDesafio?.id === c.id ? (
+                      <div style={{ background:"#FFFBEB", border:"1.5px solid #FFE082", borderRadius:14, padding:"12px 14px", marginBottom:8 }}>
+                        <div style={{ display:"flex", gap:8, marginBottom:8 }}>
+                          <input value={editDesafio.emoji} onChange={e=>setEditDesafio({...editDesafio, emoji:e.target.value})} style={{ width:46, border:"1.5px solid #E8EDF5", borderRadius:10, padding:"8px 4px", fontSize:18, textAlign:"center", fontFamily:"inherit", outline:"none" }}/>
+                          <input value={editDesafio.title} onChange={e=>setEditDesafio({...editDesafio, title:e.target.value})} style={{ flex:1, border:"1.5px solid #E8EDF5", borderRadius:10, padding:"8px 12px", fontSize:13, fontFamily:"inherit", outline:"none", color:C.text }}/>
+                        </div>
+                        <input value={editDesafio.desc} onChange={e=>setEditDesafio({...editDesafio, desc:e.target.value})} style={{ width:"100%", border:"1.5px solid #E8EDF5", borderRadius:10, padding:"8px 12px", fontSize:13, fontFamily:"inherit", outline:"none", color:C.text, boxSizing:"border-box", marginBottom:8 }}/>
+                        <div style={{ display:"flex", gap:8 }}>
+                          <input value={editDesafio.puntos} onChange={e=>setEditDesafio({...editDesafio, puntos:parseInt(e.target.value)})} type="number" style={{ flex:1, border:"1.5px solid #E8EDF5", borderRadius:10, padding:"8px 12px", fontSize:13, fontFamily:"inherit", outline:"none", color:C.text }}/>
+                          <Pill onClick={() => guardarEdicion(dia)} color={C.green} small>Guardar</Pill>
+                          <Pill onClick={() => setEditDesafio(null)} color={C.sub} outline small>✕</Pill>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ background:C.card, border:"1.5px solid #E8EDF5", borderRadius:14, padding:"11px 14px", display:"flex", alignItems:"center", gap:10, marginBottom:7 }}>
+                        <span style={{ fontSize:20 }}>{c.emoji}</span>
+                        <div style={{ flex:1 }}>
+                          <p style={{ margin:0, fontWeight:700, fontSize:13 }}>{c.title}</p>
+                          <p style={{ margin:"1px 0 0", color:C.sub, fontSize:11 }}>{c.desc} · {formatPesos(c.puntos)}</p>
+                        </div>
+                        <button onClick={() => setEditDesafio(c)} style={{ background:`${C.blue}15`, border:"none", borderRadius:8, width:30, height:30, cursor:"pointer", fontSize:14, display:"flex", alignItems:"center", justifyContent:"center" }}>✏️</button>
+                        <button onClick={() => eliminarDesafio(dia, c.id)} style={{ background:"#FFF0F0", border:"none", borderRadius:8, width:30, height:30, cursor:"pointer", fontSize:14, display:"flex", alignItems:"center", justifyContent:"center" }}>🗑️</button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* TIENDA */}
         {vista === "tienda" && (
           <div style={{ padding:"18px 16px" }}>
             <div style={{ textAlign:"center", marginBottom:20 }}>
@@ -686,6 +845,7 @@ function VistaNino({ nino: ninoInicial, cuenta, onBack, onUpdateNino }) {
           </div>
         )}
 
+        {/* HISTORIAL */}
         {vista === "historial" && (
           <div style={{ padding:"18px 16px" }}>
             <h2 style={{ margin:"0 0 2px", fontSize:20 }}>📜 Historial de {nino.nombre}</h2>
@@ -706,11 +866,14 @@ function VistaNino({ nino: ninoInicial, cuenta, onBack, onUpdateNino }) {
         )}
       </div>
 
+      {/* Bottom nav */}
       <div style={{ position:"fixed", bottom:0, left:0, right:0, zIndex:50, background:"rgba(255,255,255,0.92)", backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", borderTop:"1px solid #E8EDF5", display:"flex" }}>
         {[
-          { id:"inicio",    label:"Inicio",  svgA:<svg viewBox="0 0 24 24" fill={grupoColor} width="22" height="22"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H15v-5h-6v5H4a1 1 0 01-1-1V9.5z"/></svg>, svgI:<svg viewBox="0 0 24 24" fill="none" stroke="#B0BAC9" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="22" height="22"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H15v-5h-6v5H4a1 1 0 01-1-1V9.5z"/></svg> },
-          { id:"tienda",    label:"Tienda",  svgA:<svg viewBox="0 0 24 24" fill={grupoColor} width="22" height="22"><path d="M20 7H4l1.5 9h13L20 7zM4 7l1-3h14l1 3M9 21a1 1 0 100-2 1 1 0 000 2zm6 0a1 1 0 100-2 1 1 0 000 2z"/></svg>, svgI:<svg viewBox="0 0 24 24" fill="none" stroke="#B0BAC9" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="22" height="22"><path d="M20 7H4l1.5 9h13L20 7zM4 7l1-3h14l1 3M9 21a1 1 0 100-2 1 1 0 000 2zm6 0a1 1 0 100-2 1 1 0 000 2z"/></svg> },
-          { id:"historial", label:"Logros",  svgA:<svg viewBox="0 0 24 24" fill={grupoColor} width="22" height="22"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>, svgI:<svg viewBox="0 0 24 24" fill="none" stroke="#B0BAC9" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="22" height="22"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg> },
+          { id:"inicio",   label:"Inicio",   svgA:<svg viewBox="0 0 24 24" fill={grupoColor} width="22" height="22"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H15v-5h-6v5H4a1 1 0 01-1-1V9.5z"/></svg>, svgI:<svg viewBox="0 0 24 24" fill="none" stroke="#B0BAC9" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="22" height="22"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H15v-5h-6v5H4a1 1 0 01-1-1V9.5z"/></svg> },
+          { id:"semana",   label:"Semana",   svgA:<svg viewBox="0 0 24 24" fill={grupoColor} width="22" height="22"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="#fff" strokeWidth="1.5" fill="none"/></svg>, svgI:<svg viewBox="0 0 24 24" fill="none" stroke="#B0BAC9" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="22" height="22"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> },
+          ...(esMama ? [{ id:"editar", label:"Editar", svgA:<svg viewBox="0 0 24 24" fill={grupoColor} width="22" height="22"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" fill="none" stroke="#fff" strokeWidth="1.5"/></svg>, svgI:<svg viewBox="0 0 24 24" fill="none" stroke="#B0BAC9" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="22" height="22"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> }] : []),
+          { id:"tienda",   label:"Tienda",   svgA:<svg viewBox="0 0 24 24" fill={grupoColor} width="22" height="22"><path d="M20 7H4l1.5 9h13L20 7zM4 7l1-3h14l1 3M9 21a1 1 0 100-2 1 1 0 000 2zm6 0a1 1 0 100-2 1 1 0 000 2z"/></svg>, svgI:<svg viewBox="0 0 24 24" fill="none" stroke="#B0BAC9" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="22" height="22"><path d="M20 7H4l1.5 9h13L20 7zM4 7l1-3h14l1 3M9 21a1 1 0 100-2 1 1 0 000 2zm6 0a1 1 0 100-2 1 1 0 000 2z"/></svg> },
+          { id:"historial",label:"Logros",   svgA:<svg viewBox="0 0 24 24" fill={grupoColor} width="22" height="22"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>, svgI:<svg viewBox="0 0 24 24" fill="none" stroke="#B0BAC9" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="22" height="22"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg> },
         ].map(tab => {
           const active = vista===tab.id;
           return (
@@ -730,12 +893,11 @@ export default function Root() {
   const [screen, setScreen] = useState("welcome");
   const [currentCuenta, setCurrentCuenta] = useState(null);
   const [ninoSeleccionado, setNinoSeleccionado] = useState(null);
+  const [esMama, setEsMama] = useState(false);
 
   const handleLogin = (cuenta) => { setCurrentCuenta(cuenta); setScreen("panel"); };
   const handleLogout = () => { setCurrentCuenta(null); setNinoSeleccionado(null); setScreen("welcome"); };
-
   const updateCuenta = (updated) => setCurrentCuenta(updated);
-
   const updateNino = (updatedNino) => {
     const updatedCuenta = { ...currentCuenta, ninos: currentCuenta.ninos.map(n => n.id === updatedNino.id ? updatedNino : n) };
     setCurrentCuenta(updatedCuenta);
@@ -756,8 +918,23 @@ export default function Root() {
       {screen==="welcome"  && <Welcome onLogin={()=>setScreen("login")} onRegister={()=>setScreen("register")}/>}
       {screen==="register" && <Register onBack={()=>setScreen("welcome")} onSuccess={handleLogin}/>}
       {screen==="login"    && <Login onBack={()=>setScreen("welcome")} onSuccess={handleLogin}/>}
-      {screen==="panel"    && currentCuenta && <PanelMama cuenta={currentCuenta} onLogout={handleLogout} onSelectNino={(n) => { setNinoSeleccionado(n); setScreen("nino"); }} onUpdateCuenta={updateCuenta}/>}
-      {screen==="nino"     && ninoSeleccionado && <VistaNino nino={ninoSeleccionado} cuenta={currentCuenta} onBack={() => setScreen("panel")} onUpdateNino={updateNino}/>}
+      {screen==="panel"    && currentCuenta && (
+        <PanelMama
+          cuenta={currentCuenta}
+          onLogout={handleLogout}
+          onSelectNino={(n) => { setNinoSeleccionado(n); setEsMama(true); setScreen("nino"); }}
+          onUpdateCuenta={updateCuenta}
+        />
+      )}
+      {screen==="nino" && ninoSeleccionado && (
+        <VistaNino
+          nino={ninoSeleccionado}
+          cuenta={currentCuenta}
+          onBack={() => setScreen("panel")}
+          onUpdateNino={updateNino}
+          esMama={esMama}
+        />
+      )}
     </div>
   );
 }
