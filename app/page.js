@@ -170,23 +170,9 @@ function Welcome({ onLogin, onRegister }) {
   return (
     <div style={{ minHeight:"100vh", background:C.bg, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", padding:28 }}>
       <div style={{ textAlign:"center", maxWidth:340, width:"100%" }}>
-        <div style={{ display:"flex", justifyContent:"center", marginBottom:8 }}><Logo size={76}/></div>
-        <p style={{ color:C.sub, fontSize:14, margin:"6px 0 10px" }}>La app de entrenamiento de tu hijo ⚽</p>
-        <div style={{ margin:"24px 0 20px", display:"flex", justifyContent:"center" }}>
-          <svg width="110" height="100" viewBox="0 0 110 100" fill="none">
-            <circle cx="38" cy="28" r="18" fill="#DBEAFE"/><circle cx="38" cy="28" r="13" fill="#4D8EFF"/>
-            <circle cx="38" cy="22" r="5" fill="#fff" opacity="0.9"/>
-            <rect x="18" y="50" width="40" height="34" rx="14" fill="#4D8EFF"/>
-            <rect x="22" y="50" width="32" height="20" rx="10" fill="#DBEAFE"/>
-            <circle cx="76" cy="36" r="13" fill="#FFE0B2"/><circle cx="76" cy="36" r="9" fill="#FF7043"/>
-            <circle cx="76" cy="31" r="3.5" fill="#fff" opacity="0.9"/>
-            <rect x="60" y="56" width="30" height="26" rx="12" fill="#FF7043"/>
-            <rect x="63" y="56" width="24" height="16" rx="8" fill="#FFE0B2"/>
-            <circle cx="55" cy="72" r="8" fill="#FFB300" opacity="0.25"/>
-            <circle cx="55" cy="72" r="5" fill="#FFB300" opacity="0.5"/>
-          </svg>
-        </div>
-        <p style={{ color:C.sub, fontSize:14, margin:"0 0 32px", lineHeight:1.5 }}>Mamá crea los perfiles y gestiona los desafíos. Los niños entrenan y ganan premios.</p>
+        {/* Logo */}
+        <div style={{ display:"flex", justifyContent:"center", marginBottom:6 }}><Logo size={76}/></div>
+        <p style={{ color:C.sub, fontSize:14, margin:"6px 0 40px" }}>La app de entrenamiento de tu hijo ⚽</p>
         <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
           <Pill onClick={onRegister} color={C.blue} full>Registrarme como mamá / papá</Pill>
           <Pill onClick={onLogin} color={C.blue} outline full>Ya tengo cuenta</Pill>
@@ -247,6 +233,10 @@ function Login({ onBack, onSuccess }) {
   const [clave, setClave] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [vistaRecuperar, setVistaRecuperar] = useState(false);
+  const [usuarioRecuperar, setUsuarioRecuperar] = useState("");
+  const [claveRecuperada, setClaveRecuperada] = useState(null);
+  const [errorRecuperar, setErrorRecuperar] = useState("");
 
   const handleLogin = async () => {
     if (!usuario.trim() || !clave.trim()) { setError("Completa todos los campos"); return; }
@@ -261,6 +251,49 @@ function Login({ onBack, onSuccess }) {
     } catch(e) { setError("Error al ingresar. Intenta de nuevo."); }
     setLoading(false);
   };
+
+  const handleRecuperar = async () => {
+    if (!usuarioRecuperar.trim()) { setErrorRecuperar("Ingresa tu nombre de usuario"); return; }
+    setErrorRecuperar("");
+    try {
+      const { data, error: err } = await supabase.from('cuentas')
+        .select('clave').eq('usuario', usuarioRecuperar.trim().toLowerCase()).single();
+      if (err || !data) { setErrorRecuperar("No encontramos ese usuario"); return; }
+      setClaveRecuperada(data.clave);
+    } catch(e) { setErrorRecuperar("Error al buscar. Intenta de nuevo."); }
+  };
+
+  if (vistaRecuperar) {
+    return (
+      <div style={{ minHeight:"100vh", background:C.bg }}>
+        <div style={{ background:C.card, padding:"20px 18px 16px", boxShadow:"0 1px 10px rgba(0,0,0,0.07)", display:"flex", alignItems:"center", gap:12 }}>
+          <button onClick={() => { setVistaRecuperar(false); setClaveRecuperada(null); setErrorRecuperar(""); }} style={{ background:C.bg, border:"none", borderRadius:10, width:36, height:36, cursor:"pointer", fontSize:18 }}>←</button>
+          <h2 style={{ margin:0, fontSize:18, fontWeight:900 }}>Recuperar contraseña</h2>
+        </div>
+        <div style={{ padding:"40px 20px", maxWidth:430, margin:"0 auto" }}>
+          <div style={{ textAlign:"center", marginBottom:28 }}>
+            <div style={{ fontSize:48, marginBottom:8 }}>🔑</div>
+            <p style={{ color:C.sub, fontSize:14, margin:0 }}>Ingresa tu nombre de usuario y te mostraremos tu contraseña</p>
+          </div>
+          {!claveRecuperada ? (
+            <>
+              <Field label="USUARIO" value={usuarioRecuperar} onChange={setUsuarioRecuperar} placeholder="Tu nombre de usuario" icon="👤"/>
+              {errorRecuperar && <div style={{ background:"#FFF0F0", border:"1.5px solid #FFCCCC", borderRadius:12, padding:"10px 14px", marginBottom:14 }}><p style={{ margin:0, color:"#D32F2F", fontSize:13, fontWeight:700 }}>⚠️ {errorRecuperar}</p></div>}
+              <Pill onClick={handleRecuperar} color={C.blue} full>Buscar cuenta</Pill>
+            </>
+          ) : (
+            <div style={{ background:C.card, border:"1.5px solid #A7F3D0", borderRadius:20, padding:"28px 24px", textAlign:"center" }}>
+              <p style={{ margin:"0 0 8px", color:C.sub, fontSize:13, fontWeight:700 }}>Tu contraseña es:</p>
+              <div style={{ background:C.bg, borderRadius:14, padding:"14px 20px", marginBottom:20 }}>
+                <p style={{ margin:0, fontWeight:900, fontSize:22, color:C.text, letterSpacing:2 }}>{claveRecuperada}</p>
+              </div>
+              <Pill onClick={() => { setVistaRecuperar(false); setClaveRecuperada(null); setUsuarioRecuperar(""); }} color={C.green} full>Volver a ingresar →</Pill>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ minHeight:"100vh", background:C.bg }}>
@@ -278,6 +311,11 @@ function Login({ onBack, onSuccess }) {
         <Field label="CONTRASEÑA" type="password" value={clave} onChange={setClave} placeholder="Tu contraseña" icon="🔒"/>
         {error && <div style={{ background:"#FFF0F0", border:"1.5px solid #FFCCCC", borderRadius:12, padding:"10px 14px", marginBottom:14 }}><p style={{ margin:0, color:"#D32F2F", fontSize:13, fontWeight:700 }}>⚠️ {error}</p></div>}
         <div style={{ marginTop:8 }}><Pill onClick={handleLogin} color={C.blue} full disabled={loading}>{loading ? "Ingresando..." : "Ingresar →"}</Pill></div>
+        <div style={{ textAlign:"center", marginTop:20 }}>
+          <button onClick={() => setVistaRecuperar(true)} style={{ background:"none", border:"none", cursor:"pointer", color:C.blue, fontSize:13, fontWeight:700, fontFamily:"inherit", textDecoration:"underline", textUnderlineOffset:3 }}>
+            ¿Olvidaste tu contraseña?
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -370,16 +408,21 @@ function PanelMama({ cuenta, onLogout, onSelectNino, onUpdateCuenta }) {
 
   return (
     <div style={{ minHeight:"100vh", background:C.bg }}>
-      <div style={{ background:"linear-gradient(135deg, #FF7043, #FF5722)", padding:"20px 18px 18px", boxShadow:"0 4px 16px #FF704350" }}>
+      <div style={{ background:C.card, borderBottom:"1px solid #EEF1F7", padding:"16px 20px 14px", boxShadow:"0 2px 12px rgba(28,35,64,0.06)" }}>
         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", maxWidth:430, margin:"0 auto" }}>
-          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-            <Logo size={38} white/>
+          <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+            <div style={{ width:40, height:40, borderRadius:12, background:"linear-gradient(135deg, #FF7043, #FF5722)", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 3px 10px #FF704350", flexShrink:0 }}>
+              <span style={{ fontWeight:900, fontSize:15, color:"#fff", letterSpacing:-0.5, fontFamily:"inherit" }}>CA</span>
+            </div>
             <div>
-              <p style={{ margin:0, fontSize:10, color:"rgba(255,255,255,0.75)", fontWeight:800, letterSpacing:1 }}>PANEL DE MAMÁ 👩</p>
-              <p style={{ margin:0, fontSize:16, fontWeight:900, color:"#fff" }}>Hola, {cuenta.nombre}</p>
+              <p style={{ margin:0, fontSize:10, fontWeight:800, color:C.sub, letterSpacing:1.2 }}>PANEL APODERADO</p>
+              <p style={{ margin:0, fontSize:16, fontWeight:900, color:C.text, letterSpacing:-0.3 }}>{cuenta.nombre}</p>
             </div>
           </div>
-          <button onClick={onLogout} style={{ background:"rgba(255,255,255,0.2)", border:"none", borderRadius:10, width:34, height:34, cursor:"pointer", fontSize:16, color:"#fff", display:"flex", alignItems:"center", justifyContent:"center" }}>🚪</button>
+          <button onClick={onLogout} style={{ display:"flex", alignItems:"center", gap:6, background:C.bg, border:"1.5px solid #E8EDF5", borderRadius:100, padding:"7px 14px", cursor:"pointer", fontFamily:"inherit" }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke={C.sub} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="15" height="15"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+            <span style={{ fontSize:12, fontWeight:700, color:C.sub }}>Salir</span>
+          </button>
         </div>
       </div>
 
