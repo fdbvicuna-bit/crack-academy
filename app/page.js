@@ -606,7 +606,7 @@ function PanelMama({ cuenta, onLogout, onSelectNino, onUpdateCuenta }) {
 }
 
 // ─── VISTA NIÑO ───────────────────────────────────────────────────────────────
-function VistaNino({ nino: ninoInicial, cuenta, onBack, onUpdateNino, esMama }) {
+function VistaNino({ nino: ninoInicial, cuenta, onBack, onUpdateNino }) {
   const [nino, setNino] = useState(ninoInicial);
   const [vista, setVista] = useState("inicio");
   const diaHoy = getDiaHoy();
@@ -616,11 +616,6 @@ function VistaNino({ nino: ninoInicial, cuenta, onBack, onUpdateNino, esMama }) 
   const [celebrar, setCelebrar] = useState(false);
   const [canjeExitoso, setCanjeExitoso] = useState(null);
   const [saving, setSaving] = useState(false);
-
-  // Estado para editar desafíos (solo mamá)
-  const [editandoDia, setEditandoDia] = useState(null);
-  const [nuevoDesafio, setNuevoDesafio] = useState({ emoji:"⚽", title:"", desc:"", puntos:"" });
-  const [editDesafio, setEditDesafio] = useState(null);
 
   const grupo = getGrupoEdad(nino.edad);
   const grupoColor = { pequeno: C.orange, mediano: C.blue, grande: C.green }[grupo];
@@ -672,33 +667,6 @@ function VistaNino({ nino: ninoInicial, cuenta, onBack, onUpdateNino, esMama }) 
     setTimeout(() => window.open(`https://wa.me/${MAMA_WHATSAPP}?text=${msg}`, "_blank"), 800);
   };
 
-  // ── Gestión de desafíos (mamá) ──
-  const agregarDesafio = async (dia) => {
-    if (!nuevoDesafio.title.trim() || !nuevoDesafio.puntos) return;
-    const newId = `custom-${Date.now()}`;
-    const desafio = { id: newId, emoji: nuevoDesafio.emoji, title: nuevoDesafio.title.trim(), desc: nuevoDesafio.desc.trim(), puntos: parseInt(nuevoDesafio.puntos) };
-    const updated = { ...nino, challenges: { ...challenges, [dia]: [...(challenges[dia] || []), desafio] } };
-    await saveNino(updated);
-    setNuevoDesafio({ emoji:"⚽", title:"", desc:"", puntos:"" });
-  };
-
-  const eliminarDesafio = async (dia, id) => {
-    const updated = { ...nino, challenges: { ...challenges, [dia]: challenges[dia].filter(c => c.id !== id) } };
-    await saveNino(updated);
-  };
-
-  const guardarEdicion = async (dia) => {
-    if (!editDesafio) return;
-    const updated = {
-      ...nino,
-      challenges: {
-        ...challenges,
-        [dia]: challenges[dia].map(c => c.id === editDesafio.id ? editDesafio : c)
-      }
-    };
-    await saveNino(updated);
-    setEditDesafio(null);
-  };
 
   return (
     <div style={{ minHeight:"100vh", background:C.bg }}>
@@ -882,72 +850,6 @@ function VistaNino({ nino: ninoInicial, cuenta, onBack, onUpdateNino, esMama }) 
           </div>
         )}
 
-        {/* DESAFÍOS — solo mamá puede editar */}
-        {vista === "editar" && esMama && (
-          <div style={{ padding:"18px 16px" }}>
-            <h2 style={{ margin:"0 0 2px", fontSize:20 }}>✏️ Editar desafíos</h2>
-            <p style={{ color:C.sub, fontSize:13, margin:"0 0 16px" }}>Personaliza los desafíos de {nino.nombre}</p>
-
-            {dias.map(dia => (
-              <div key={dia} style={{ marginBottom:20 }}>
-                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                    <div style={{ width:7, height:7, borderRadius:"50%", background: dia===diaHoy ? grupoColor : "#CBD5E1" }}/>
-                    <span style={{ fontSize:12, fontWeight:800, color: dia===diaHoy ? grupoColor : C.sub, letterSpacing:0.6 }}>{dia.toUpperCase()}</span>
-                    {dia===diaHoy && <span style={{ fontSize:11, background:`${grupoColor}20`, color:grupoColor, borderRadius:100, padding:"2px 10px", fontWeight:800 }}>HOY</span>}
-                  </div>
-                  <button onClick={() => setEditandoDia(editandoDia===dia ? null : dia)} style={{ background:`${C.blue}15`, color:C.blue, border:"none", borderRadius:100, padding:"5px 12px", fontSize:12, fontWeight:800, cursor:"pointer", fontFamily:"inherit" }}>
-                    {editandoDia===dia ? "Cerrar" : "+ Agregar"}
-                  </button>
-                </div>
-
-                {/* Form agregar */}
-                {editandoDia===dia && (
-                  <div style={{ background:`${C.blue}08`, border:`1.5px solid ${C.blue}30`, borderRadius:16, padding:"14px 14px", marginBottom:10 }}>
-                    <div style={{ display:"flex", gap:8, marginBottom:8 }}>
-                      <input value={nuevoDesafio.emoji} onChange={e=>setNuevoDesafio({...nuevoDesafio, emoji:e.target.value})} style={{ width:46, border:"1.5px solid #E8EDF5", borderRadius:10, padding:"8px 4px", fontSize:18, textAlign:"center", fontFamily:"inherit", outline:"none" }}/>
-                      <input value={nuevoDesafio.title} onChange={e=>setNuevoDesafio({...nuevoDesafio, title:e.target.value})} placeholder="Nombre del desafío" style={{ flex:1, border:"1.5px solid #E8EDF5", borderRadius:10, padding:"8px 12px", fontSize:13, fontFamily:"inherit", outline:"none", color:C.text }}/>
-                    </div>
-                    <input value={nuevoDesafio.desc} onChange={e=>setNuevoDesafio({...nuevoDesafio, desc:e.target.value})} placeholder="Descripción (qué debe hacer)" style={{ width:"100%", border:"1.5px solid #E8EDF5", borderRadius:10, padding:"8px 12px", fontSize:13, fontFamily:"inherit", outline:"none", color:C.text, boxSizing:"border-box", marginBottom:8 }}/>
-                    <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-                      <input value={nuevoDesafio.puntos} onChange={e=>setNuevoDesafio({...nuevoDesafio, puntos:e.target.value})} placeholder="Puntos $" type="number" style={{ flex:1, border:"1.5px solid #E8EDF5", borderRadius:10, padding:"8px 12px", fontSize:13, fontFamily:"inherit", outline:"none", color:C.text }}/>
-                      <Pill onClick={() => agregarDesafio(dia)} color={C.blue} small disabled={saving}>Agregar</Pill>
-                    </div>
-                  </div>
-                )}
-
-                {(challenges[dia] || []).map(c => (
-                  <div key={c.id}>
-                    {editDesafio?.id === c.id ? (
-                      <div style={{ background:"#FFFBEB", border:"1.5px solid #FFE082", borderRadius:14, padding:"12px 14px", marginBottom:8 }}>
-                        <div style={{ display:"flex", gap:8, marginBottom:8 }}>
-                          <input value={editDesafio.emoji} onChange={e=>setEditDesafio({...editDesafio, emoji:e.target.value})} style={{ width:46, border:"1.5px solid #E8EDF5", borderRadius:10, padding:"8px 4px", fontSize:18, textAlign:"center", fontFamily:"inherit", outline:"none" }}/>
-                          <input value={editDesafio.title} onChange={e=>setEditDesafio({...editDesafio, title:e.target.value})} style={{ flex:1, border:"1.5px solid #E8EDF5", borderRadius:10, padding:"8px 12px", fontSize:13, fontFamily:"inherit", outline:"none", color:C.text }}/>
-                        </div>
-                        <input value={editDesafio.desc} onChange={e=>setEditDesafio({...editDesafio, desc:e.target.value})} style={{ width:"100%", border:"1.5px solid #E8EDF5", borderRadius:10, padding:"8px 12px", fontSize:13, fontFamily:"inherit", outline:"none", color:C.text, boxSizing:"border-box", marginBottom:8 }}/>
-                        <div style={{ display:"flex", gap:8 }}>
-                          <input value={editDesafio.puntos} onChange={e=>setEditDesafio({...editDesafio, puntos:parseInt(e.target.value)})} type="number" style={{ flex:1, border:"1.5px solid #E8EDF5", borderRadius:10, padding:"8px 12px", fontSize:13, fontFamily:"inherit", outline:"none", color:C.text }}/>
-                          <Pill onClick={() => guardarEdicion(dia)} color={C.green} small>Guardar</Pill>
-                          <Pill onClick={() => setEditDesafio(null)} color={C.sub} outline small>✕</Pill>
-                        </div>
-                      </div>
-                    ) : (
-                      <div style={{ background:C.card, border:"1.5px solid #E8EDF5", borderRadius:14, padding:"11px 14px", display:"flex", alignItems:"center", gap:10, marginBottom:7 }}>
-                        <span style={{ fontSize:20 }}>{c.emoji}</span>
-                        <div style={{ flex:1 }}>
-                          <p style={{ margin:0, fontWeight:700, fontSize:13 }}>{c.title}</p>
-                          <p style={{ margin:"1px 0 0", color:C.sub, fontSize:11 }}>{c.desc} · {formatPesos(c.puntos)}</p>
-                        </div>
-                        <button onClick={() => setEditDesafio(c)} style={{ background:`${C.blue}15`, border:"none", borderRadius:8, width:30, height:30, cursor:"pointer", fontSize:14, display:"flex", alignItems:"center", justifyContent:"center" }}>✏️</button>
-                        <button onClick={() => eliminarDesafio(dia, c.id)} style={{ background:"#FFF0F0", border:"none", borderRadius:8, width:30, height:30, cursor:"pointer", fontSize:14, display:"flex", alignItems:"center", justifyContent:"center" }}>🗑️</button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
-        )}
 
         {/* TIENDA */}
         {vista === "tienda" && (
@@ -1012,7 +914,6 @@ function VistaNino({ nino: ninoInicial, cuenta, onBack, onUpdateNino, esMama }) 
         {[
           { id:"inicio",   label:"Inicio",   svgA:<svg viewBox="0 0 24 24" fill={grupoColor} width="22" height="22"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H15v-5h-6v5H4a1 1 0 01-1-1V9.5z"/></svg>, svgI:<svg viewBox="0 0 24 24" fill="none" stroke="#B0BAC9" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="22" height="22"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 01-1 1H15v-5h-6v5H4a1 1 0 01-1-1V9.5z"/></svg> },
           { id:"semana",   label:"Semana",   svgA:<svg viewBox="0 0 24 24" fill={grupoColor} width="22" height="22"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="#fff" strokeWidth="1.5" fill="none"/></svg>, svgI:<svg viewBox="0 0 24 24" fill="none" stroke="#B0BAC9" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="22" height="22"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> },
-          ...(esMama ? [{ id:"editar", label:"Editar", svgA:<svg viewBox="0 0 24 24" fill={grupoColor} width="22" height="22"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" fill="none" stroke="#fff" strokeWidth="1.5"/></svg>, svgI:<svg viewBox="0 0 24 24" fill="none" stroke="#B0BAC9" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="22" height="22"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> }] : []),
           { id:"tienda",   label:"Tienda",   svgA:<svg viewBox="0 0 24 24" fill={grupoColor} width="22" height="22"><path d="M20 7H4l1.5 9h13L20 7zM4 7l1-3h14l1 3M9 21a1 1 0 100-2 1 1 0 000 2zm6 0a1 1 0 100-2 1 1 0 000 2z"/></svg>, svgI:<svg viewBox="0 0 24 24" fill="none" stroke="#B0BAC9" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="22" height="22"><path d="M20 7H4l1.5 9h13L20 7zM4 7l1-3h14l1 3M9 21a1 1 0 100-2 1 1 0 000 2zm6 0a1 1 0 100-2 1 1 0 000 2z"/></svg> },
           { id:"historial",label:"Logros",   svgA:<svg viewBox="0 0 24 24" fill={grupoColor} width="22" height="22"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>, svgI:<svg viewBox="0 0 24 24" fill="none" stroke="#B0BAC9" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="22" height="22"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg> },
         ].map(tab => {
@@ -1034,7 +935,6 @@ export default function Root() {
   const [screen, setScreen] = useState("welcome");
   const [currentCuenta, setCurrentCuenta] = useState(null);
   const [ninoSeleccionado, setNinoSeleccionado] = useState(null);
-  const [esMama, setEsMama] = useState(false);
 
   const handleLogin = (cuenta) => { setCurrentCuenta(cuenta); setScreen("panel"); };
   const handleLogout = () => { setCurrentCuenta(null); setNinoSeleccionado(null); setScreen("welcome"); };
@@ -1063,7 +963,6 @@ export default function Root() {
         <PanelMama
           cuenta={currentCuenta}
           onLogout={handleLogout}
-          onSelectNino={(n) => { setNinoSeleccionado(n); setEsMama(true); setScreen("nino"); }}
           onUpdateCuenta={updateCuenta}
         />
       )}
@@ -1073,7 +972,6 @@ export default function Root() {
           cuenta={currentCuenta}
           onBack={() => setScreen("panel")}
           onUpdateNino={updateNino}
-          esMama={esMama}
         />
       )}
     </div>
