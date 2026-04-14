@@ -295,6 +295,40 @@ function PanelMama({ cuenta, onLogout, onSelectNino, onUpdateCuenta }) {
   const [nuevoPrecio, setNuevoPrecio] = useState("");
   const [nuevaCat, setNuevaCat] = useState("");
   const [loading, setLoading] = useState(false);
+  // Estado para editar desafíos
+  const [ninoEditando, setNinoEditando] = useState(null);
+  const [editandoDia, setEditandoDia] = useState(null);
+  const [nuevoDesafio, setNuevoDesafio] = useState({ emoji:"⚽", title:"", desc:"", puntos:"" });
+  const [editDesafio, setEditDesafio] = useState(null);
+  const [savingDesafio, setSavingDesafio] = useState(false);
+
+  const saveDesafiosNino = async (ninoActualizado) => {
+    setSavingDesafio(true);
+    await supabase.from("ninos").update({ challenges: ninoActualizado.challenges }).eq("id", ninoActualizado.id);
+    onUpdateCuenta({ ...cuenta, ninos: cuenta.ninos.map(n => n.id === ninoActualizado.id ? ninoActualizado : n) });
+    setNinoEditando(ninoActualizado);
+    setSavingDesafio(false);
+  };
+
+  const agregarDesafioNino = async (dia) => {
+    if (!nuevoDesafio.title.trim() || !nuevoDesafio.puntos) return;
+    const ch = ninoEditando.challenges || getChallengesIniciales(ninoEditando.edad);
+    const nd = { id:"custom-"+Date.now(), emoji:nuevoDesafio.emoji, title:nuevoDesafio.title.trim(), desc:nuevoDesafio.desc.trim(), puntos:parseInt(nuevoDesafio.puntos) };
+    await saveDesafiosNino({ ...ninoEditando, challenges: { ...ch, [dia]: [...(ch[dia]||[]), nd] } });
+    setNuevoDesafio({ emoji:"⚽", title:"", desc:"", puntos:"" });
+  };
+
+  const eliminarDesafioNino = async (dia, id) => {
+    const ch = ninoEditando.challenges || getChallengesIniciales(ninoEditando.edad);
+    await saveDesafiosNino({ ...ninoEditando, challenges: { ...ch, [dia]: ch[dia].filter(c => c.id !== id) } });
+  };
+
+  const guardarEdicionDesafio = async (dia) => {
+    if (!editDesafio) return;
+    const ch = ninoEditando.challenges || getChallengesIniciales(ninoEditando.edad);
+    await saveDesafiosNino({ ...ninoEditando, challenges: { ...ch, [dia]: ch[dia].map(c => c.id===editDesafio.id ? editDesafio : c) } });
+    setEditDesafio(null);
+  };
 
   const agregarNino = async () => {
     if (!nombre.trim() || !edad) { setError("Completa nombre y edad"); return; }
@@ -444,12 +478,119 @@ function PanelMama({ cuenta, onLogout, onSelectNino, onUpdateCuenta }) {
             ))}
           </div>
         )}
+
+        {vistaTab === "desafios" && (
+          <div style={{ padding:"18px 16px" }}>
+            <h2 style={{ margin:"0 0 2px", fontSize:20 }}>✏️ Editar desafíos</h2>
+            <p style={{ color:C.sub, fontSize:13, margin:"0 0 16px" }}>Selecciona un hijo para editar su semana</p>
+
+            {/* Selector de niño */}
+            {cuenta.ninos.length === 0 ? (
+              <div style={{ textAlign:"center", padding:"40px 20px", color:C.sub }}>
+                <div style={{ fontSize:48, marginBottom:12 }}>👦</div>
+                <p style={{ fontWeight:700, color:C.text, margin:"0 0 4px" }}>No hay hijos registrados</p>
+                <p style={{ fontSize:13, margin:0 }}>Agrega un hijo primero desde "Mis hijos"</p>
+              </div>
+            ) : (
+              <>
+                <div style={{ display:"flex", gap:8, marginBottom:20, flexWrap:"wrap" }}>
+                  {cuenta.ninos.map(n => {
+                    const grupo = getGrupoEdad(n.edad);
+                    const color = { pequeno:C.orange, mediano:C.blue, grande:C.green }[grupo];
+                    const sel = ninoEditando?.id === n.id;
+                    return (
+                      <button key={n.id} onClick={() => { setNinoEditando(n); setEditandoDia(null); setEditDesafio(null); }} style={{
+                        background: sel ? color : C.card,
+                        color: sel ? "#fff" : C.text,
+                        border: `1.5px solid ${sel ? color : "#E8EDF5"}`,
+                        borderRadius:100, padding:"8px 18px", fontWeight:800, fontSize:13,
+                        cursor:"pointer", fontFamily:"inherit",
+                        boxShadow: sel ? `0 3px 12px ${color}44` : "none",
+                      }}>{n.nombre} · {n.edad}a</button>
+                    );
+                  })}
+                </div>
+
+                {ninoEditando && (() => {
+                  const challenges = ninoEditando.challenges || getChallengesIniciales(ninoEditando.edad);
+                  const grupoColor = { pequeno:C.orange, mediano:C.blue, grande:C.green }[getGrupoEdad(ninoEditando.edad)];
+                  return (
+                    <div>
+                      {dias.map(dia => (
+                        <div key={dia} style={{ marginBottom:18 }}>
+                          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:10 }}>
+                            <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                              <div style={{ width:7, height:7, borderRadius:"50%", background: dia===getDiaHoy() ? grupoColor : "#CBD5E1" }}/>
+                              <span style={{ fontSize:12, fontWeight:800, color: dia===getDiaHoy() ? grupoColor : C.sub, letterSpacing:0.6 }}>{dia.toUpperCase()}</span>
+                              {dia===getDiaHoy() && <span style={{ fontSize:11, background:`${grupoColor}20`, color:grupoColor, borderRadius:100, padding:"2px 10px", fontWeight:800 }}>HOY</span>}
+                            </div>
+                            <button onClick={() => setEditandoDia(editandoDia===dia ? null : dia)} style={{ background:`${C.blue}15`, color:C.blue, border:"none", borderRadius:100, padding:"5px 14px", fontSize:12, fontWeight:800, cursor:"pointer", fontFamily:"inherit" }}>
+                              {editandoDia===dia ? "Cerrar" : "+ Agregar"}
+                            </button>
+                          </div>
+
+                          {editandoDia===dia && (
+                            <div style={{ background:`${C.blue}08`, border:`1.5px solid ${C.blue}25`, borderRadius:16, padding:"14px", marginBottom:10 }}>
+                              <div style={{ display:"flex", gap:8, marginBottom:8 }}>
+                                <input value={nuevoDesafio.emoji} onChange={e=>setNuevoDesafio({...nuevoDesafio,emoji:e.target.value})} style={{ width:46, border:"1.5px solid #E8EDF5", borderRadius:10, padding:"8px 4px", fontSize:18, textAlign:"center", fontFamily:"inherit", outline:"none" }}/>
+                                <input value={nuevoDesafio.title} onChange={e=>setNuevoDesafio({...nuevoDesafio,title:e.target.value})} placeholder="Nombre del desafío" style={{ flex:1, border:"1.5px solid #E8EDF5", borderRadius:10, padding:"8px 12px", fontSize:13, fontFamily:"inherit", outline:"none", color:C.text }}/>
+                              </div>
+                              <input value={nuevoDesafio.desc} onChange={e=>setNuevoDesafio({...nuevoDesafio,desc:e.target.value})} placeholder="¿Qué debe hacer?" style={{ width:"100%", border:"1.5px solid #E8EDF5", borderRadius:10, padding:"8px 12px", fontSize:13, fontFamily:"inherit", outline:"none", color:C.text, boxSizing:"border-box", marginBottom:8 }}/>
+                              <div style={{ display:"flex", gap:8 }}>
+                                <input value={nuevoDesafio.puntos} onChange={e=>setNuevoDesafio({...nuevoDesafio,puntos:e.target.value})} placeholder="Puntos $" type="number" style={{ flex:1, border:"1.5px solid #E8EDF5", borderRadius:10, padding:"8px 12px", fontSize:13, fontFamily:"inherit", outline:"none", color:C.text }}/>
+                                <Pill onClick={() => agregarDesafioNino(dia)} color={C.blue} small disabled={savingDesafio}>Agregar</Pill>
+                              </div>
+                            </div>
+                          )}
+
+                          {(challenges[dia]||[]).length === 0 && (
+                            <p style={{ color:C.sub, fontSize:12, margin:"0 0 8px 4px" }}>Sin desafíos — agrega uno con el botón</p>
+                          )}
+
+                          {(challenges[dia]||[]).map(c => (
+                            <div key={c.id}>
+                              {editDesafio?.id === c.id ? (
+                                <div style={{ background:"#FFFBEB", border:"1.5px solid #FFE082", borderRadius:14, padding:"12px 14px", marginBottom:8 }}>
+                                  <div style={{ display:"flex", gap:8, marginBottom:8 }}>
+                                    <input value={editDesafio.emoji} onChange={e=>setEditDesafio({...editDesafio,emoji:e.target.value})} style={{ width:46, border:"1.5px solid #E8EDF5", borderRadius:10, padding:"8px 4px", fontSize:18, textAlign:"center", fontFamily:"inherit", outline:"none" }}/>
+                                    <input value={editDesafio.title} onChange={e=>setEditDesafio({...editDesafio,title:e.target.value})} style={{ flex:1, border:"1.5px solid #E8EDF5", borderRadius:10, padding:"8px 12px", fontSize:13, fontFamily:"inherit", outline:"none", color:C.text }}/>
+                                  </div>
+                                  <input value={editDesafio.desc} onChange={e=>setEditDesafio({...editDesafio,desc:e.target.value})} style={{ width:"100%", border:"1.5px solid #E8EDF5", borderRadius:10, padding:"8px 12px", fontSize:13, fontFamily:"inherit", outline:"none", color:C.text, boxSizing:"border-box", marginBottom:8 }}/>
+                                  <div style={{ display:"flex", gap:8 }}>
+                                    <input value={editDesafio.puntos} onChange={e=>setEditDesafio({...editDesafio,puntos:parseInt(e.target.value)})} type="number" style={{ flex:1, border:"1.5px solid #E8EDF5", borderRadius:10, padding:"8px 12px", fontSize:13, fontFamily:"inherit", outline:"none", color:C.text }}/>
+                                    <Pill onClick={() => guardarEdicionDesafio(dia)} color={C.green} small disabled={savingDesafio}>Guardar</Pill>
+                                    <Pill onClick={() => setEditDesafio(null)} color={C.sub} outline small>✕</Pill>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div style={{ background:C.card, border:"1.5px solid #E8EDF5", borderRadius:14, padding:"11px 14px", display:"flex", alignItems:"center", gap:10, marginBottom:7 }}>
+                                  <span style={{ fontSize:20 }}>{c.emoji}</span>
+                                  <div style={{ flex:1, minWidth:0 }}>
+                                    <p style={{ margin:0, fontWeight:700, fontSize:13, color:C.text }}>{c.title}</p>
+                                    <p style={{ margin:"1px 0 0", color:C.sub, fontSize:11, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{c.desc} · {formatPesos(c.puntos)}</p>
+                                  </div>
+                                  <button onClick={() => setEditDesafio({...c})} style={{ background:`${C.blue}15`, border:"none", borderRadius:8, width:30, height:30, cursor:"pointer", fontSize:14, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>✏️</button>
+                                  <button onClick={() => eliminarDesafioNino(dia, c.id)} style={{ background:"#FFF0F0", border:"none", borderRadius:8, width:30, height:30, cursor:"pointer", fontSize:14, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>🗑️</button>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </>
+            )}
+          </div>
+        )}
       </div>
 
       <div style={{ position:"fixed", bottom:0, left:0, right:0, zIndex:50, background:"rgba(255,255,255,0.92)", backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", borderTop:"1px solid #E8EDF5", display:"flex" }}>
         {[
-          { id:"hijos", label:"Mis hijos", svgA:<svg viewBox="0 0 24 24" fill={C.orange} width="22" height="22"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zm14 10v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>, svgI:<svg viewBox="0 0 24 24" fill="none" stroke="#B0BAC9" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="22" height="22"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zm14 10v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg> },
-          { id:"premios", label:"Premios", svgA:<svg viewBox="0 0 24 24" fill={C.orange} width="22" height="22"><path d="M20 12v10H4V12M22 7H2v5h20V7zM12 22V7M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7zm0 0h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/></svg>, svgI:<svg viewBox="0 0 24 24" fill="none" stroke="#B0BAC9" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="22" height="22"><path d="M20 12v10H4V12M22 7H2v5h20V7zM12 22V7M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7zm0 0h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/></svg> },
+          { id:"hijos",    label:"Mis hijos", svgA:<svg viewBox="0 0 24 24" fill={C.orange} width="22" height="22"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zm14 10v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>, svgI:<svg viewBox="0 0 24 24" fill="none" stroke="#B0BAC9" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="22" height="22"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zm14 10v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg> },
+          { id:"desafios", label:"Desafíos",  svgA:<svg viewBox="0 0 24 24" fill={C.orange} width="22" height="22"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="#fff" strokeWidth="1.2" fill="none"/></svg>, svgI:<svg viewBox="0 0 24 24" fill="none" stroke="#B0BAC9" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="22" height="22"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> },
+          { id:"premios",  label:"Premios",   svgA:<svg viewBox="0 0 24 24" fill={C.orange} width="22" height="22"><path d="M20 12v10H4V12M22 7H2v5h20V7zM12 22V7M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7zm0 0h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/></svg>, svgI:<svg viewBox="0 0 24 24" fill="none" stroke="#B0BAC9" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="22" height="22"><path d="M20 12v10H4V12M22 7H2v5h20V7zM12 22V7M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7zm0 0h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/></svg> },
         ].map(tab => {
           const active = vistaTab === tab.id;
           return (
