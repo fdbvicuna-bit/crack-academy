@@ -1006,6 +1006,7 @@ export default function Root() {
         <PanelMama
           cuenta={currentCuenta}
           onLogout={handleLogout}
+          onSelectNino={(n) => { setNinoSeleccionado(n); setScreen("nino"); }}
           onUpdateCuenta={updateCuenta}
         />
       )}
