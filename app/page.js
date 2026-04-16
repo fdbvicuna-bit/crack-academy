@@ -15,7 +15,6 @@ const C = {
 
 function formatPesos(n) { return `$${Number(n).toLocaleString("es-CL")}`; }
 const dias = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
-const MAMA_WHATSAPP = "56912345678";
 
 // Día de hoy como string
 function getDiaHoy() {
@@ -186,18 +185,22 @@ function Register({ onBack, onSuccess }) {
   const [nombre, setNombre] = useState("");
   const [usuario, setUsuario] = useState("");
   const [clave, setClave] = useState("");
+  const [email, setEmail] = useState("");
+  const [telefono, setTelefono] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleRegister = async () => {
     if (!nombre.trim() || !usuario.trim() || !clave.trim()) { setError("Completa todos los campos"); return; }
     if (clave.length < 4) { setError("La clave debe tener al menos 4 caracteres"); return; }
+    if (!email.trim() || !email.includes("@")) { setError("Ingresa un correo válido"); return; }
+    if (!telefono.trim()) { setError("Ingresa el teléfono para notificaciones de premios"); return; }
     setLoading(true); setError("");
     try {
       const { data: existing } = await supabase.from('cuentas').select('id').eq('usuario', usuario.trim().toLowerCase()).maybeSingle();
       if (existing) { setError("Ese usuario ya existe"); setLoading(false); return; }
       const { data, error: err } = await supabase.from('cuentas')
-        .insert([{ nombre: nombre.trim(), usuario: usuario.trim().toLowerCase(), clave }])
+        .insert([{ nombre: nombre.trim(), usuario: usuario.trim().toLowerCase(), clave, email: email.trim().toLowerCase(), telefono: telefono.trim() }])
         .select().single();
       if (err) throw err;
       const premiosConCuenta = PREMIOS_DEFAULT.map(p => ({ ...p, cuenta_id: data.id }));
@@ -219,8 +222,11 @@ function Register({ onBack, onSuccess }) {
           <p style={{ color:C.sub, fontSize:14, margin:0 }}>Crea tu cuenta para gestionar los perfiles de tus hijos</p>
         </div>
         <Field label="TU NOMBRE" value={nombre} onChange={setNombre} placeholder="ej: María" icon="👩"/>
+        <Field label="CORREO ELECTRÓNICO" type="email" value={email} onChange={setEmail} placeholder="ej: maria@gmail.com" icon="✉️"/>
         <Field label="USUARIO" value={usuario} onChange={setUsuario} placeholder="ej: mama123" icon="👤"/>
         <Field label="CONTRASEÑA" type="password" value={clave} onChange={setClave} placeholder="Mínimo 4 caracteres" icon="🔒"/>
+        <Field label="CELULAR (con código de país)" type="tel" value={telefono} onChange={setTelefono} placeholder="ej: 56912345678" icon="📱"/>
+        <p style={{ margin:"-6px 0 12px 3px", fontSize:11, color:C.sub }}>A este número llegará el WhatsApp cuando tu hijo canjee un premio</p>
         {error && <div style={{ background:"#FFF0F0", border:"1.5px solid #FFCCCC", borderRadius:12, padding:"10px 14px", marginBottom:14 }}><p style={{ margin:0, color:"#D32F2F", fontSize:13, fontWeight:700 }}>⚠️ {error}</p></div>}
         <div style={{ marginTop:8 }}><Pill onClick={handleRegister} color={C.blue} full disabled={loading}>{loading ? "Creando..." : "Crear cuenta ✓"}</Pill></div>
       </div>
@@ -328,6 +334,19 @@ function PanelMama({ cuenta, onLogout, onSelectNino, onUpdateCuenta }) {
   const [edad, setEdad] = useState("");
   const [error, setError] = useState("");
   const [vistaTab, setVistaTab] = useState("hijos");
+  const [telefonoEdit, setTelefonoEdit] = useState(cuenta.telefono || "");
+  const [savingPerfil, setSavingPerfil] = useState(false);
+  const [perfilMsg, setPerfilMsg] = useState("");
+
+  const guardarTelefono = async () => {
+    if (!telefonoEdit.trim()) return;
+    setSavingPerfil(true);
+    await supabase.from('cuentas').update({ telefono: telefonoEdit.trim() }).eq('id', cuenta.id);
+    onUpdateCuenta({ ...cuenta, telefono: telefonoEdit.trim() });
+    setPerfilMsg("✅ Teléfono guardado");
+    setTimeout(() => setPerfilMsg(""), 2500);
+    setSavingPerfil(false);
+  };
   const [nuevoEmoji, setNuevoEmoji] = useState("🎁");
   const [nuevoNombre, setNuevoNombre] = useState("");
   const [nuevoPrecio, setNuevoPrecio] = useState("");
@@ -627,6 +646,51 @@ function PanelMama({ cuenta, onLogout, onSelectNino, onUpdateCuenta }) {
             )}
           </div>
         )}
+
+        {vistaTab === "perfil" && (
+          <div style={{ padding:"18px 16px" }}>
+            <h2 style={{ margin:"0 0 2px", fontSize:20 }}>👤 Mi perfil</h2>
+            <p style={{ color:C.sub, fontSize:13, margin:"0 0 24px" }}>Configura tus datos y notificaciones</p>
+
+            {/* Info cuenta */}
+            <div style={{ background:C.card, border:"1.5px solid #E8EDF5", borderRadius:20, padding:"20px 18px", marginBottom:16, boxShadow:"0 2px 8px rgba(0,0,0,0.04)" }}>
+              <p style={{ margin:"0 0 14px", fontSize:13, fontWeight:800, color:C.text }}>Datos de la cuenta</p>
+              <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+                {[
+                  { label:"Nombre", value: cuenta.nombre, icon:"👩" },
+                  { label:"Correo", value: cuenta.email || "—", icon:"✉️" },
+                  { label:"Usuario", value: cuenta.usuario, icon:"👤" },
+                ].map(item => (
+                  <div key={item.label} style={{ display:"flex", alignItems:"center", gap:12 }}>
+                    <span style={{ fontSize:18 }}>{item.icon}</span>
+                    <div>
+                      <p style={{ margin:0, fontSize:11, color:C.sub, fontWeight:700 }}>{item.label.toUpperCase()}</p>
+                      <p style={{ margin:0, fontSize:15, fontWeight:700, color:C.text }}>{item.value}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Teléfono notificaciones */}
+            <div style={{ background:C.card, border:`1.5px solid ${cuenta.telefono ? "#E8EDF5" : "#FFCCBC"}`, borderRadius:20, padding:"20px 18px", boxShadow:"0 2px 8px rgba(0,0,0,0.04)" }}>
+              <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
+                <span style={{ fontSize:20 }}>📱</span>
+                <p style={{ margin:0, fontSize:13, fontWeight:800, color:C.text }}>Teléfono para notificaciones</p>
+              </div>
+              <p style={{ margin:"0 0 14px", fontSize:12, color:C.sub }}>A este número llegará el WhatsApp cuando tu hijo canjee un premio</p>
+              {!cuenta.telefono && (
+                <div style={{ background:"#FFF3E0", border:"1.5px solid #FFCCBC", borderRadius:12, padding:"10px 14px", marginBottom:14 }}>
+                  <p style={{ margin:0, color:C.orange, fontSize:13, fontWeight:700 }}>⚠️ Sin teléfono configurado — los canjes no enviarán WhatsApp</p>
+                </div>
+              )}
+              <Field label="NÚMERO WHATSAPP" type="tel" value={telefonoEdit} onChange={setTelefonoEdit} placeholder="ej: 56912345678" icon="📲"/>
+              <p style={{ margin:"-6px 0 14px 3px", fontSize:11, color:C.sub }}>Incluye el código de país (56 para Chile)</p>
+              {perfilMsg && <p style={{ margin:"0 0 10px", color:C.green, fontSize:13, fontWeight:700 }}>{perfilMsg}</p>}
+              <Pill onClick={guardarTelefono} color={C.orange} full disabled={savingPerfil}>{savingPerfil ? "Guardando..." : "Guardar teléfono"}</Pill>
+            </div>
+          </div>
+        )}
       </div>
 
       <div style={{ position:"fixed", bottom:0, left:0, right:0, zIndex:50, background:"rgba(255,255,255,0.92)", backdropFilter:"blur(16px)", WebkitBackdropFilter:"blur(16px)", borderTop:"1px solid #E8EDF5", display:"flex" }}>
@@ -634,6 +698,7 @@ function PanelMama({ cuenta, onLogout, onSelectNino, onUpdateCuenta }) {
           { id:"hijos",    label:"Mis hijos", svgA:<svg viewBox="0 0 24 24" fill={C.orange} width="22" height="22"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zm14 10v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>, svgI:<svg viewBox="0 0 24 24" fill="none" stroke="#B0BAC9" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="22" height="22"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zm14 10v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg> },
           { id:"desafios", label:"Desafíos",  svgA:<svg viewBox="0 0 24 24" fill={C.orange} width="22" height="22"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" stroke="#fff" strokeWidth="1.2" fill="none"/></svg>, svgI:<svg viewBox="0 0 24 24" fill="none" stroke="#B0BAC9" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="22" height="22"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> },
           { id:"premios",  label:"Premios",   svgA:<svg viewBox="0 0 24 24" fill={C.orange} width="22" height="22"><path d="M20 12v10H4V12M22 7H2v5h20V7zM12 22V7M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7zm0 0h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/></svg>, svgI:<svg viewBox="0 0 24 24" fill="none" stroke="#B0BAC9" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="22" height="22"><path d="M20 12v10H4V12M22 7H2v5h20V7zM12 22V7M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7zm0 0h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/></svg> },
+          { id:"perfil",   label:"Perfil",    svgA:<svg viewBox="0 0 24 24" fill={C.orange} width="22" height="22"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z"/></svg>, svgI:<svg viewBox="0 0 24 24" fill="none" stroke="#B0BAC9" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" width="22" height="22"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z"/></svg> },
         ].map(tab => {
           const active = vistaTab === tab.id;
           return (
@@ -707,7 +772,8 @@ function VistaNino({ nino: ninoInicial, cuenta, onBack, onUpdateNino }) {
     await saveNino(updated);
     setCanjeExitoso(p);
     setPremioCanjear(null);
-    setTimeout(() => window.open(`https://wa.me/${MAMA_WHATSAPP}?text=${msg}`, "_blank"), 800);
+    const tel = cuenta.telefono || "56900000000";
+    setTimeout(() => window.open(`https://wa.me/${tel}?text=${msg}`, "_blank"), 800);
   };
 
 
