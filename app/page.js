@@ -763,17 +763,17 @@ function VistaNino({ nino: ninoInicial, cuenta, onBack, onUpdateNino }) {
 
   const canjearPremio = async (p) => {
     if (nino.puntos < p.precio) return;
-    const msg = encodeURIComponent(`🏆 ¡${nino.nombre} canjeó un premio!\n\n🎁 Premio: ${p.emoji} ${p.nombre}\n💰 Costo: ${formatPesos(p.precio)}\n\n¡Felicítalo, se lo ganó con sus desafíos de fútbol! ⚽`);
+    const msg = encodeURIComponent(`🏆 ¡${nino.nombre} canjeó un premio!\n\n🎁 Premio: ${p.emoji} ${p.nombre}\n💰 Costo: ${formatPesos(p.precio)}\n\n¡Felícitalo, se lo ganó con sus desafíos de fútbol! ⚽`);
+    const tel = (cuenta.telefono || "").replace(/[^0-9]/g, "");
+    const waLink = tel ? `https://wa.me/${tel}?text=${msg}` : null;
     const updated = {
       ...nino,
       puntos: nino.puntos - p.precio,
       historial: [{ desc:`🎁 Canjeó: ${p.nombre} — -${formatPesos(p.precio)}`, ts: new Date().toLocaleTimeString("es-CL") }, ...nino.historial],
     };
     await saveNino(updated);
-    setCanjeExitoso(p);
+    setCanjeExitoso({ ...p, waLink });
     setPremioCanjear(null);
-    const tel = cuenta.telefono || "56900000000";
-    setTimeout(() => window.open(`https://wa.me/${tel}?text=${msg}`, "_blank"), 800);
   };
 
 
@@ -788,9 +788,19 @@ function VistaNino({ nino: ninoInicial, cuenta, onBack, onUpdateNino }) {
         <Modal>
           <div style={{ fontSize:64 }}>{canjeExitoso.emoji}</div>
           <h2 style={{ color:C.green, margin:"10px 0 4px", fontSize:22 }}>¡Premio canjeado!</h2>
-          <p style={{ fontWeight:700, margin:"0 0 6px" }}>{canjeExitoso.nombre}</p>
-          <p style={{ color:C.sub, fontSize:13, margin:"0 0 24px" }}>📱 Enviando WhatsApp a mamá...</p>
-          <Pill onClick={() => setCanjeExitoso(null)} color={C.green}>¡Genial! 🎉</Pill>
+          <p style={{ fontWeight:700, margin:"0 0 16px" }}>{canjeExitoso.nombre}</p>
+          {canjeExitoso.waLink ? (
+            <a href={canjeExitoso.waLink} target="_blank" rel="noreferrer" style={{ display:"block", marginBottom:12, textDecoration:"none" }}>
+              <div style={{ background:"#25D366", borderRadius:100, padding:"13px 28px", fontWeight:800, fontSize:15, color:"#fff", boxShadow:"0 4px 14px #25D36640" }}>
+                📲 Enviar WhatsApp a mamá
+              </div>
+            </a>
+          ) : (
+            <div style={{ background:"#FFF3E0", border:"1.5px solid #FFCCBC", borderRadius:12, padding:"10px 14px", marginBottom:12 }}>
+              <p style={{ margin:0, color:C.orange, fontSize:13, fontWeight:700 }}>⚠️ Sin teléfono configurado — configúralo en Perfil</p>
+            </div>
+          )}
+          <Pill onClick={() => setCanjeExitoso(null)} color={C.green} outline>Cerrar</Pill>
         </Modal>
       )}
       {confirmar && (
